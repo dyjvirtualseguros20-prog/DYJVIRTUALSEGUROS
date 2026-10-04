@@ -9,3 +9,6 @@ next-env.d.ts
 
 # Datos locales de desarrollo (contienen datos personales)
 .data
+
+.vercel
+.env*
