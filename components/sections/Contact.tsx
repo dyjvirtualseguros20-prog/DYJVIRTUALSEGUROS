@@ -72,14 +72,15 @@ export function Contact() {
                 <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-white text-brand-600 ring-1 ring-slate-100">
                   <Icon name={item.icon} className="size-5" />
                 </span>
-                <div>
+                {/* min-w-0 + wrap-anywhere: los valores largos (p. ej. el correo) no desbordan en celulares. */}
+                <div className="min-w-0">
                   <p className="text-xs font-semibold tracking-wider text-slate-500 uppercase">{item.label}</p>
                   {item.href ? (
-                    <a href={item.href} className="text-lg font-bold text-ink hover:text-brand-700">
+                    <a href={item.href} className="text-lg font-bold wrap-anywhere text-ink hover:text-brand-700">
                       {item.value}
                     </a>
                   ) : (
-                    <p className="text-lg font-bold text-ink">{item.value}</p>
+                    <p className="text-lg font-bold wrap-anywhere text-ink">{item.value}</p>
                   )}
                 </div>
               </li>
