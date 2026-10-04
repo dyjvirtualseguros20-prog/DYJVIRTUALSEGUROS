@@ -94,3 +94,24 @@ Si las variables de Supabase están vacías y no es producción, las solicitudes
 - `/admin` protegido en tres capas: `proxy.ts`, `requireAdmin()` en cada página y acción, y Row Level Security en la base de datos.
 - El público no tiene ningún permiso sobre `quote_requests`. Las solicitudes se registran con la función `public.submit_quote_request()`, que solo inserta (estado fijo `nueva_solicitud`) y devuelve la referencia. Supabase la marca como "ejecutable por anon": es intencional.
 - Los asesores solo pueden modificar `status`, `advisor_notes`, `quote_amount` y `contacted_at`; nadie puede borrar solicitudes desde la app.
+
+## Asesores y enlaces personalizados
+
+Cada asesor comparte su propio enlace a la misma web:
+
+- `https://dyj-virtual-seguros.vercel.app/cristian` (también funciona `/?asesor=cristian` en cualquier página)
+
+Al entrar por el enlace, `proxy.ts` guarda el asesor en una cookie segura (`asesor`, httpOnly, 30 días) y la web muestra su nombre, foto y WhatsApp. Cada solicitud guarda `quote_requests.advisor_id`, asignado **por el servidor** (nunca por el formulario) y validado por la base de datos. Los asesores no pueden modificarlo desde `/admin`, donde aparece la columna y el filtro **Asesor**.
+
+**Agregar un asesor (sin tocar el código ni volver a publicar):** Supabase → Table Editor → `advisors` → Insert row:
+
+| Columna     | Ejemplo              | Nota                                                                              |
+| ----------- | -------------------- | --------------------------------------------------------------------------------- |
+| `id`        | `juan`               | Va en el enlace. Minúsculas, números y guiones.                                   |
+| `name`      | `Juan Pérez`         |                                                                                   |
+| `whatsapp`  | `573001234567`       | 57 + 10 dígitos, sin espacios ni `+`.                                             |
+| `phone`     | _(vacío)_            | Opcional; si está vacío se usa el WhatsApp.                                       |
+| `photo_url` | `https://…/juan.jpg` | Opcional (https). Sin foto se muestran las iniciales.                             |
+| `active`    | `true`               | Para retirar a un asesor, ponlo en `false` (no lo borres: conserva su historial). |
+
+El enlace funciona en menos de un minuto. Migración: `supabase/migrations/0002_advisors.sql`.
