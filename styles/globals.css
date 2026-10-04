@@ -1,0 +1,97 @@
+@import "tailwindcss";
+
+/*
+ * Los colores de la marca se definen en config/site.ts y se inyectan como
+ * variables CSS (--c-*) en app/layout.tsx. Aquí solo se exponen a Tailwind.
+ * Los valores de respaldo son los mismos de config/site.ts.
+ */
+@theme inline {
+  --color-brand-50: var(--c-brand50, #eef3fc);
+  --color-brand-100: var(--c-brand100, #dce6f9);
+  --color-brand-200: var(--c-brand200, #b7caf1);
+  --color-brand-500: var(--c-brand500, #2d5bd0);
+  --color-brand-600: var(--c-brand600, #1e3f94);
+  --color-brand-700: var(--c-brand700, #183377);
+  --color-brand-800: var(--c-brand800, #11255a);
+  --color-brand-900: var(--c-brand900, #0a1838);
+  --color-accent: var(--c-accent, #8a93a6);
+  --color-ink: var(--c-ink, #0f172a);
+  --color-whatsapp: var(--c-whatsapp, #25d366);
+
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+}
+
+@theme {
+  --shadow-soft: 0 1px 2px rgb(15 23 42 / 0.04), 0 8px 24px -8px rgb(15 23 42 / 0.1);
+  --shadow-lift: 0 2px 4px rgb(15 23 42 / 0.04), 0 24px 48px -16px rgb(15 23 42 / 0.22);
+  --animate-fade-up: fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-pulse-ring: pulse-ring 2.4s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes pulse-ring {
+    0% {
+      transform: scale(1);
+      opacity: 0.55;
+    }
+    80%,
+    100% {
+      transform: scale(1.55);
+      opacity: 0;
+    }
+  }
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-white text-ink antialiased;
+  }
+  /* Compensa el encabezado fijo al navegar con anclas (#seguros). */
+  section[id] {
+    scroll-margin-top: 5.5rem;
+  }
+  ::selection {
+    @apply bg-brand-100 text-brand-900;
+  }
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-brand-500;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* Elementos que aparecen al hacer scroll (ver components/ui/Reveal.tsx).
+   Solo se ocultan si JavaScript está activo (clase .js en <html>). */
+.js .reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.js .reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
