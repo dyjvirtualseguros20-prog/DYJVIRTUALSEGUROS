@@ -1,13 +1,13 @@
 import "server-only";
 
 import { createPublicClient, createSessionClient } from "@/server/supabase";
-import type { QuoteRequestRecord } from "@/types";
+import { NO_ADVISOR, type QuoteRequestRecord } from "@/types";
 import { DuplicateReferenceError, type QuoteRequestStore } from "./types";
 
 const TABLE = "quote_requests";
 
 const COLUMNS =
-  "id, reference, created_at, updated_at, insurance_type, full_name, identification, phone, whatsapp, email, city, status, form_data, advisor_notes, quote_amount, contacted_at";
+  "id, reference, created_at, updated_at, insurance_type, full_name, identification, phone, whatsapp, email, city, status, form_data, advisor_notes, quote_amount, contacted_at, advisor_id";
 
 interface Row {
   id: string;
@@ -26,6 +26,7 @@ interface Row {
   advisor_notes: string | null;
   quote_amount: number | string | null;
   contacted_at: string | null;
+  advisor_id: string | null;
 }
 
 function toRecord(row: Row): QuoteRequestRecord {
@@ -47,6 +48,7 @@ function toRecord(row: Row): QuoteRequestRecord {
     // numeric llega como texto desde PostgREST.
     quoteAmount: row.quote_amount === null ? null : Number(row.quote_amount),
     contactedAt: row.contacted_at,
+    advisorId: row.advisor_id,
   };
 }
 
@@ -78,6 +80,7 @@ export const supabaseStore: QuoteRequestStore = {
         p_email: input.email,
         p_city: input.city ?? "",
         p_form_data: input.formData,
+        p_advisor_id: input.advisorId,
       })
       .single<{ id: string; reference: string; status: QuoteRequestRecord["status"]; created_at: string }>();
 
@@ -94,6 +97,8 @@ export const supabaseStore: QuoteRequestStore = {
     let query = supabase.from(TABLE).select(COLUMNS).order("created_at", { ascending: false }).limit(500);
     if (filters.insuranceType) query = query.eq("insurance_type", filters.insuranceType);
     if (filters.status) query = query.eq("status", filters.status);
+    if (filters.advisorId === NO_ADVISOR) query = query.is("advisor_id", null);
+    else if (filters.advisorId) query = query.eq("advisor_id", filters.advisorId);
     if (filters.from) query = query.gte("created_at", dayStart(filters.from));
     if (filters.to) query = query.lt("created_at", nextDayStart(filters.to));
     const { data, error } = await query;

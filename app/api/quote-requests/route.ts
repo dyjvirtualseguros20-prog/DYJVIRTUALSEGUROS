@@ -5,7 +5,9 @@
  * la solicitud (Supabase) con el estado "Nueva solicitud".
  * Solo devuelve la referencia: nunca datos de otras solicitudes.
  */
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { ADVISOR_COOKIE } from "@/lib/advisorLink";
 import { quoteApiBodySchema } from "@/lib/validation/quoteSchemas";
 import { createQuoteRequest, StorageNotConfiguredError } from "@/server/quoteRequests";
 
@@ -50,7 +52,10 @@ export async function POST(request: Request) {
   }
 
   try {
-    const receipt = await createQuoteRequest(parsed.data.insuranceType, parsed.data.form);
+    // Asesor de la visita: se toma de la cookie que fijó el enlace (/cristian), nunca del formulario.
+    // La base de datos vuelve a comprobar que exista y esté activo.
+    const advisorId = (await cookies()).get(ADVISOR_COOKIE)?.value ?? null;
+    const receipt = await createQuoteRequest(parsed.data.insuranceType, parsed.data.form, advisorId);
     return NextResponse.json({ receipt }, { status: 201, headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("[api/quote-requests]", error);

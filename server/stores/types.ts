@@ -17,6 +17,8 @@ export interface NewQuoteRequest {
   email: string;
   city: string | null;
   formData: Record<string, unknown>;
+  /** Asesor de la visita (sin validar: la base de datos lo valida). */
+  advisorId: string | null;
 }
 
 export interface CreatedQuoteRequest {

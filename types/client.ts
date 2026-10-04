@@ -76,6 +76,11 @@ export interface QuoteRequestRecord {
   advisorNotes: string | null;
   quoteAmount: number | null;
   contactedAt: string | null;
+  /**
+   * Asesor que originó la visita (enlace /cristian, /...). Lo fija el servidor al
+   * registrar la solicitud y no se puede modificar desde /admin. null = sin asesor.
+   */
+  advisorId: string | null;
 }
 
 /** Campos que el asesor puede modificar desde /admin. */
@@ -94,4 +99,9 @@ export interface QuoteRequestFilters {
   from?: string;
   /** Fecha final YYYY-MM-DD (inclusive). */
   to?: string;
+  /** Id del asesor, o NO_ADVISOR para las solicitudes sin asesor. */
+  advisorId?: string;
 }
+
+/** Valor del filtro "Asesor" para las solicitudes que llegaron sin enlace de asesor. */
+export const NO_ADVISOR = "sin-asesor";

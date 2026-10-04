@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { whatsappUrl } from "@/lib/whatsapp";
+import { getCurrentContact } from "@/server/advisors";
 import { Container } from "@/components/ui/Container";
 import { WhatsAppIcon } from "@/components/ui/Icon";
 import { InsuranceSelector } from "@/components/quote/InsuranceSelector";
@@ -11,7 +12,8 @@ export const metadata: Metadata = {
   alternates: { canonical: "/cotizar" },
 };
 
-export default function CotizarPage() {
+export default async function CotizarPage() {
+  const contact = await getCurrentContact();
   return (
     <section className="bg-gradient-to-b from-brand-50 to-white pt-28 pb-24 sm:pt-36">
       <Container className="max-w-5xl">
@@ -28,7 +30,7 @@ export default function CotizarPage() {
         <p className="mt-10 text-center text-sm text-slate-600">
           ¿No sabes cuál elegir?{" "}
           <a
-            href={whatsappUrl()}
+            href={whatsappUrl(undefined, contact.whatsappNumber)}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 font-semibold text-brand-700 underline-offset-4 hover:underline"

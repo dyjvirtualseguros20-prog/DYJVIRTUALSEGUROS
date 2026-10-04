@@ -3,8 +3,9 @@ import Link from "next/link";
 import { formatPhone } from "@/lib/admin";
 import { formatDateTime } from "@/lib/datetime";
 import { getProduct } from "@/lib/insurance";
+import { listAdvisors } from "@/server/advisors";
 import { listQuoteRequests } from "@/server/quoteRequests";
-import { isInsuranceType, isRequestStatus, type QuoteRequestFilters } from "@/types";
+import { isInsuranceType, isRequestStatus, NO_ADVISOR, type QuoteRequestFilters } from "@/types";
 import { RequestFilters } from "@/components/admin/RequestFilters";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { Container } from "@/components/ui/Container";
@@ -23,12 +24,19 @@ export default async function AdminRequestsPage({ searchParams }: Props) {
   const estado = one(params.estado);
   const desde = one(params.desde);
   const hasta = one(params.hasta);
+  const asesor = one(params.asesor);
+
+  const advisors = await listAdvisors();
+  const advisorName = new Map(advisors.map((a) => [a.id, a.name]));
+  /** Nombre del asesor (o su id si ya no existe), o "Sin asesor". */
+  const advisorLabel = (id: string | null) => (id ? (advisorName.get(id) ?? id) : "Sin asesor");
 
   const filters: QuoteRequestFilters = {
     insuranceType: isInsuranceType(tipo) ? tipo : undefined,
     status: isRequestStatus(estado) ? estado : undefined,
     from: DATE.test(desde) ? desde : undefined,
     to: DATE.test(hasta) ? hasta : undefined,
+    advisorId: asesor === NO_ADVISOR || advisorName.has(asesor) ? asesor : undefined,
   };
   const hasFilters = Object.values(filters).some(Boolean);
 
@@ -51,6 +59,8 @@ export default async function AdminRequestsPage({ searchParams }: Props) {
         estado={filters.status ?? ""}
         desde={filters.from ?? ""}
         hasta={filters.to ?? ""}
+        asesor={filters.advisorId ?? ""}
+        advisors={advisors}
       />
 
       {requests.length === 0 ? (
@@ -91,6 +101,9 @@ export default async function AdminRequestsPage({ searchParams }: Props) {
                     Teléfono
                   </th>
                   <th scope="col" className="px-5 py-3.5">
+                    Asesor
+                  </th>
+                  <th scope="col" className="px-5 py-3.5">
                     Estado
                   </th>
                 </tr>
@@ -118,6 +131,9 @@ export default async function AdminRequestsPage({ searchParams }: Props) {
                     </td>
                     <td className="px-5 py-4 text-slate-600">{r.city ?? "—"}</td>
                     <td className="px-5 py-4 whitespace-nowrap text-slate-600">{formatPhone(r.phone)}</td>
+                    <td className={r.advisorId ? "px-5 py-4 font-semibold text-ink" : "px-5 py-4 text-slate-400"}>
+                      {advisorLabel(r.advisorId)}
+                    </td>
                     <td className="px-5 py-4">
                       <StatusBadge status={r.status} />
                     </td>
@@ -158,6 +174,12 @@ export default async function AdminRequestsPage({ searchParams }: Props) {
                     <div>
                       <dt className="sr-only">Teléfono</dt>
                       <dd>{formatPhone(r.phone)}</dd>
+                    </div>
+                    <div className="col-span-2">
+                      <dt className="inline">Asesor: </dt>
+                      <dd className={r.advisorId ? "inline font-semibold text-ink" : "inline"}>
+                        {advisorLabel(r.advisorId)}
+                      </dd>
                     </div>
                   </dl>
                 </Link>

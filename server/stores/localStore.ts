@@ -10,7 +10,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
-import type { QuoteRequestRecord } from "@/types";
+import { NO_ADVISOR, type QuoteRequestRecord } from "@/types";
 import { DuplicateReferenceError, type QuoteRequestStore } from "./types";
 
 const DIR = path.join(process.cwd(), ".data");
@@ -67,6 +67,7 @@ export const localStore: QuoteRequestStore = {
         advisorNotes: null,
         quoteAmount: null,
         contactedAt: null,
+        advisorId: input.advisorId,
       };
       rows.push(record);
       return { id: record.id, reference: record.reference, status: record.status, createdAt: record.createdAt };
@@ -78,6 +79,9 @@ export const localStore: QuoteRequestStore = {
     return rows
       .filter((r) => !filters.insuranceType || r.insuranceType === filters.insuranceType)
       .filter((r) => !filters.status || r.status === filters.status)
+      .filter((r) =>
+        !filters.advisorId ? true : filters.advisorId === NO_ADVISOR ? !r.advisorId : r.advisorId === filters.advisorId,
+      )
       .filter((r) => !filters.from || Date.parse(r.createdAt) >= dayStartMs(filters.from))
       .filter((r) => !filters.to || Date.parse(r.createdAt) < dayStartMs(filters.to) + 86_400_000)
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));

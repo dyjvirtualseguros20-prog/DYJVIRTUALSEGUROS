@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { INSURANCE_PRODUCTS } from "@/lib/insurance";
-import { REQUEST_STATUSES } from "@/types";
+import { NO_ADVISOR, REQUEST_STATUSES, type Advisor } from "@/types";
 import { Icon } from "@/components/ui/Icon";
 
 const control =
@@ -12,17 +12,21 @@ export function RequestFilters({
   estado,
   desde,
   hasta,
+  asesor,
+  advisors,
 }: {
   tipo: string;
   estado: string;
   desde: string;
   hasta: string;
+  asesor: string;
+  advisors: Advisor[];
 }) {
   return (
     <form
       method="get"
       action="/admin"
-      className="mt-6 grid gap-3 rounded-3xl bg-white p-4 ring-1 ring-slate-200 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_1fr_auto]"
+      className="mt-6 grid gap-3 rounded-3xl bg-white p-4 ring-1 ring-slate-200 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_1fr_1fr_auto]"
     >
       <label className="space-y-1">
         <span className="text-xs font-semibold text-slate-500">Tipo de seguro</span>
@@ -44,6 +48,19 @@ export function RequestFilters({
               {label}
             </option>
           ))}
+        </select>
+      </label>
+      <label className="space-y-1">
+        <span className="text-xs font-semibold text-slate-500">Asesor</span>
+        <select name="asesor" defaultValue={asesor} className={control}>
+          <option value="">Todos</option>
+          {advisors.map((a) => (
+            <option key={a.id} value={a.id}>
+              {a.name}
+              {a.active ? "" : " (inactivo)"}
+            </option>
+          ))}
+          <option value={NO_ADVISOR}>Sin asesor</option>
         </select>
       </label>
       <label className="space-y-1">

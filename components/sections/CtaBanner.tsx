@@ -1,9 +1,11 @@
 import { whatsappUrl } from "@/lib/whatsapp";
+import { getCurrentContact } from "@/server/advisors";
 import { ButtonLink, ExternalButton } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
 import { Icon, WhatsAppIcon } from "@/components/ui/Icon";
 
-export function CtaBanner() {
+export async function CtaBanner() {
+  const contact = await getCurrentContact();
   return (
     <section aria-labelledby="cta-title" className="py-20 sm:py-24">
       <Container>
@@ -24,7 +26,7 @@ export function CtaBanner() {
                 Cotizar ahora
                 <Icon name="arrowRight" className="size-5" />
               </ButtonLink>
-              <ExternalButton href={whatsappUrl()} variant="whatsapp" size="lg">
+              <ExternalButton href={whatsappUrl(undefined, contact.whatsappNumber)} variant="whatsapp" size="lg">
                 <WhatsAppIcon className="size-5" />
                 Hablar por WhatsApp
               </ExternalButton>

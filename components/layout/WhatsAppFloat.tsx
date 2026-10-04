@@ -1,15 +1,16 @@
-import { siteConfig } from "@/config/site";
 import { whatsappUrl } from "@/lib/whatsapp";
+import { getCurrentContact } from "@/server/advisors";
 import { WhatsAppIcon } from "@/components/ui/Icon";
 
-/** Botón flotante de WhatsApp visible en todo el sitio. */
-export function WhatsAppFloat() {
+/** Botón flotante de WhatsApp visible en todo el sitio (del asesor del enlace, si lo hay). */
+export async function WhatsAppFloat() {
+  const contact = await getCurrentContact();
   return (
     <a
-      href={whatsappUrl()}
+      href={whatsappUrl(undefined, contact.whatsappNumber)}
       target="_blank"
       rel="noopener noreferrer"
-      aria-label={`Escríbenos por WhatsApp al ${siteConfig.whatsapp.display}`}
+      aria-label={`Escríbenos por WhatsApp al ${contact.whatsappDisplay}${contact.advisor ? ` (${contact.advisor.name})` : ""}`}
       className="group fixed right-4 bottom-4 z-40 flex items-center gap-3 sm:right-6 sm:bottom-6"
     >
       <span className="pointer-events-none hidden translate-x-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-ink opacity-0 shadow-lift transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100 md:block">

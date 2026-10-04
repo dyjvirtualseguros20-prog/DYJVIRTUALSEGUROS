@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProduct } from "@/lib/insurance";
 import { whatsappUrl } from "@/lib/whatsapp";
+import { getCurrentContact } from "@/server/advisors";
 import { INSURANCE_TYPES, isInsuranceType } from "@/types";
 import { Container } from "@/components/ui/Container";
 import { Icon, INSURANCE_ICONS, WhatsAppIcon } from "@/components/ui/Icon";
@@ -31,6 +32,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function CotizarTipoPage({ params }: Props) {
   const { tipo } = await params;
+  const contact = await getCurrentContact();
   if (!isInsuranceType(tipo)) notFound();
   const product = getProduct(tipo);
 
@@ -62,14 +64,17 @@ export default async function CotizarTipoPage({ params }: Props) {
             </div>
           </header>
           <div className="p-5 sm:p-8">
-            <QuoteWizard key={tipo} type={tipo} />
+            <QuoteWizard key={tipo} type={tipo} whatsappNumber={contact.whatsappNumber} />
           </div>
         </div>
 
         <p className="mt-8 text-center text-sm text-slate-600">
           ¿Prefieres hacerlo por chat?{" "}
           <a
-            href={whatsappUrl(`Hola, quiero cotizar ${product.quoteTitle} y conocer las opciones disponibles.`)}
+            href={whatsappUrl(
+              `Hola, quiero cotizar ${product.quoteTitle} y conocer las opciones disponibles.`,
+              contact.whatsappNumber,
+            )}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 font-semibold text-brand-700 underline-offset-4 hover:underline"

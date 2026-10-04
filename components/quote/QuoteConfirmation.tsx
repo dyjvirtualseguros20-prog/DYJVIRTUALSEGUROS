@@ -16,10 +16,13 @@ const NEXT_STEPS = [
 export function QuoteConfirmation({
   receipt,
   type,
+  whatsappNumber,
   onRestart,
 }: {
   receipt: QuoteRequestReceipt;
   type: InsuranceType;
+  /** WhatsApp del asesor de la visita (o el de la empresa). */
+  whatsappNumber: string;
   onRestart: () => void;
 }) {
   const productName = getProduct(type).name.toLowerCase();
@@ -61,7 +64,7 @@ export function QuoteConfirmation({
           <p className="mt-2 text-brand-100/80">Escríbenos por WhatsApp con tu referencia y un asesor te atenderá.</p>
         </div>
         <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
-          <ExternalButton href={whatsappUrl(advisorMessage)} variant="whatsapp" size="lg">
+          <ExternalButton href={whatsappUrl(advisorMessage, whatsappNumber)} variant="whatsapp" size="lg">
             <WhatsAppIcon className="size-5" />
             Hablar con un asesor
           </ExternalButton>

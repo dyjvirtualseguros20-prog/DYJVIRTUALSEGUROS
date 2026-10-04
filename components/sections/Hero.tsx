@@ -1,11 +1,13 @@
 import { heroContent } from "@/config/content";
 import { INSURANCE_PRODUCTS } from "@/lib/insurance";
 import { whatsappUrl } from "@/lib/whatsapp";
+import { getCurrentContact } from "@/server/advisors";
 import { ButtonLink, ExternalButton } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
 import { Icon, INSURANCE_ICONS, WhatsAppIcon } from "@/components/ui/Icon";
 
-export function Hero() {
+export async function Hero() {
+  const contact = await getCurrentContact();
   return (
     <section
       id="inicio"
@@ -41,7 +43,7 @@ export function Hero() {
               {heroContent.primaryCta}
               <Icon name="arrowRight" className="size-5" />
             </ButtonLink>
-            <ExternalButton href={whatsappUrl()} variant="secondary" size="lg">
+            <ExternalButton href={whatsappUrl(undefined, contact.whatsappNumber)} variant="secondary" size="lg">
               <WhatsAppIcon className="size-5 text-whatsapp" />
               {heroContent.secondaryCta}
             </ExternalButton>

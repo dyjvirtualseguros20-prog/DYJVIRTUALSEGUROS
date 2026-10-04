@@ -10,6 +10,7 @@ import "server-only";
  * además leen con la sesión del usuario para que RLS proteja los datos.
  */
 import { randomInt } from "node:crypto";
+import { normalizeAdvisorId } from "@/lib/advisorLink";
 import type { AnyQuoteForm } from "@/lib/validation/quoteSchemas";
 import { toQuoteRequest } from "@/services/clients";
 import type {
@@ -43,7 +44,11 @@ function newReference(): string {
 }
 
 /** Registra una solicitud validada con el estado "Nueva solicitud". */
-export async function createQuoteRequest(type: InsuranceType, form: AnyQuoteForm): Promise<QuoteRequestReceipt> {
+export async function createQuoteRequest(
+  type: InsuranceType,
+  form: AnyQuoteForm,
+  advisorId: string | null = null,
+): Promise<QuoteRequestReceipt> {
   const { contact, details } = toQuoteRequest(type, form);
   const identification =
     "documentNumber" in details ? String(details.documentNumber) : "nit" in details ? String(details.nit) : null;
@@ -63,6 +68,7 @@ export async function createQuoteRequest(type: InsuranceType, form: AnyQuoteForm
         email: contact.email,
         city,
         formData: details,
+        advisorId: normalizeAdvisorId(advisorId),
       });
       return { requestId: created.reference, status: created.status, createdAt: created.createdAt, isDemo: false };
     } catch (error) {

@@ -3,11 +3,13 @@ import { mainNav } from "@/config/navigation";
 import { siteConfig } from "@/config/site";
 import { INSURANCE_PRODUCTS } from "@/lib/insurance";
 import { whatsappUrl } from "@/lib/whatsapp";
+import { getCurrentContact } from "@/server/advisors";
 import { Container } from "@/components/ui/Container";
 import { Logo } from "@/components/ui/Logo";
 import { SocialLinks } from "./SocialLinks";
 
-export function Footer() {
+export async function Footer() {
+  const current = await getCurrentContact();
   const year = new Date().getFullYear();
   const { contact } = siteConfig;
 
@@ -55,8 +57,14 @@ export function Footer() {
           <h3 className="mb-4 text-sm font-bold text-white">Contacto</h3>
           <ul className="space-y-2.5 text-sm">
             <li>
-              <a href={whatsappUrl()} target="_blank" rel="noopener noreferrer" className="hover:text-white">
-                WhatsApp: {siteConfig.whatsapp.display}
+              <a
+                href={whatsappUrl(undefined, current.whatsappNumber)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-white"
+              >
+                WhatsApp: {current.whatsappDisplay}
+                {current.advisor ? ` (${current.advisor.name})` : ""}
               </a>
             </li>
             {contact.secondaryPhone && <li>Teléfono: {contact.secondaryPhone}</li>}

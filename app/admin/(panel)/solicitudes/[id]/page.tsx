@@ -5,6 +5,7 @@ import { clientWhatsappUrl, describeFormData, formatPhone } from "@/lib/admin";
 import { formatDateTime, toLocalInputValue } from "@/lib/datetime";
 import { formatCOP } from "@/lib/format";
 import { getProduct } from "@/lib/insurance";
+import { listAdvisors } from "@/server/advisors";
 import { getQuoteRequest } from "@/server/quoteRequests";
 import { RequestManageForm } from "@/components/admin/RequestManageForm";
 import { StatusBadge } from "@/components/admin/StatusBadge";
@@ -35,6 +36,11 @@ export default async function RequestDetailPage({ params }: Props) {
   if (!request) notFound();
 
   const product = getProduct(request.insuranceType);
+  // Asesor que originó la visita (fijado al registrar la solicitud; no se puede editar).
+  const advisor = request.advisorId ? ((await listAdvisors()).find((a) => a.id === request.advisorId) ?? null) : null;
+  const advisorText = request.advisorId
+    ? `${advisor?.name ?? request.advisorId} (enlace /${request.advisorId})`
+    : "Sin asesor (llegó sin enlace de asesor)";
 
   const contactItems = [
     { label: "Nombre completo", value: request.fullName },
@@ -83,7 +89,8 @@ export default async function RequestDetailPage({ params }: Props) {
             <p className="font-mono text-xs font-semibold text-brand-700">{request.reference}</p>
             <h1 className="text-2xl font-extrabold tracking-tight text-ink">{request.fullName}</h1>
             <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-500">
-              {product.name} · Recibida el {formatDateTime(request.createdAt)}
+              {product.name} · Recibida el {formatDateTime(request.createdAt)} · Asesor:{" "}
+              <strong className="font-semibold text-ink">{advisor?.name ?? request.advisorId ?? "Sin asesor"}</strong>
               <StatusBadge status={request.status} />
             </p>
           </div>
@@ -117,6 +124,7 @@ export default async function RequestDetailPage({ params }: Props) {
           <section className="rounded-3xl bg-white p-6 text-xs text-slate-500 ring-1 ring-slate-200">
             <DataList
               items={[
+                { label: "Asesor", value: advisorText },
                 { label: "ID interno", value: <span className="font-mono text-xs">{request.id}</span> },
                 { label: "Última actualización", value: formatDateTime(request.updatedAt) },
                 {

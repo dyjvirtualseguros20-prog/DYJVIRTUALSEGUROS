@@ -20,7 +20,7 @@ type Step =
  * services/quotes.ts → getQuotes() y QuoteResults.tsx ya están listos para mostrar opciones.
  * Los datos del formulario solo viven en memoria (no se guardan en el navegador).
  */
-export function QuoteWizard({ type }: { type: InsuranceType }) {
+export function QuoteWizard({ type, whatsappNumber }: { type: InsuranceType; whatsappNumber: string }) {
   const [step, setStep] = useState<Step>({ name: "form" });
   const [formKey, setFormKey] = useState(0);
   const topRef = useRef<HTMLDivElement>(null);
@@ -69,7 +69,9 @@ export function QuoteWizard({ type }: { type: InsuranceType }) {
         />
       )}
       {step.name === "loading" && <QuoteLoading />}
-      {step.name === "done" && <QuoteConfirmation receipt={step.receipt} type={type} onRestart={restart} />}
+      {step.name === "done" && (
+        <QuoteConfirmation receipt={step.receipt} type={type} whatsappNumber={whatsappNumber} onRestart={restart} />
+      )}
     </div>
   );
 }
