@@ -12,3 +12,12 @@ next-env.d.ts
 
 .vercel
 .env*
+
+# Cloudflare (OpenNext / Wrangler)
+.open-next
+.wrangler
+.dev.vars
+
+# Excepciones: archivos SIN secretos que sí deben estar en GitHub
+!.env.example
+!.env.production

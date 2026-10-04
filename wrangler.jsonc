@@ -1,0 +1,29 @@
+/**
+ * Configuración de Cloudflare Workers (solo se usa al publicar en Cloudflare).
+ * Vercel ignora este archivo: la web sigue funcionando igual allí.
+ * Documentación: https://opennext.js.org/cloudflare
+ */
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "dyj-virtual-seguros",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS",
+  },
+  // Optimización de imágenes de next/image (logo) con Cloudflare Images.
+  "images": {
+    "binding": "IMAGES",
+  },
+  "observability": {
+    "enabled": true,
+  },
+  // Variables PÚBLICAS (ninguna es secreta). Las mismas que en Vercel.
+  "vars": {
+    "NEXT_PUBLIC_SUPABASE_URL": "https://tsrnkezdfpxjafmcawgq.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_hBiyHQQ6-JulW3LlbvhBkQ_P8fPaic3",
+    "NEXT_PUBLIC_QUOTES_SOURCE": "mock",
+  },
+}
