@@ -99,7 +99,7 @@ Si las variables de Supabase están vacías y no es producción, las solicitudes
 
 Cada asesor comparte su propio enlace a la misma web:
 
-- `https://dyj-virtual-seguros.vercel.app/cristian` (también funciona `/?asesor=cristian` en cualquier página)
+- `https://dyjvirtualseguros.com/cristian` (también funciona `/?asesor=cristian` en cualquier página)
 
 Al entrar por el enlace, `proxy.ts` guarda el asesor en una cookie segura (`asesor`, httpOnly, 30 días) y la web muestra su nombre, foto y WhatsApp. Cada solicitud guarda `quote_requests.advisor_id`, asignado **por el servidor** (nunca por el formulario) y validado por la base de datos. Los asesores no pueden modificarlo desde `/admin`, donde aparece la columna y el filtro **Asesor**.
 
