@@ -84,7 +84,7 @@ export const siteConfig = {
     /** Proveedor donde se publicará la web (p. ej. "Vercel Inc."). Opcional: si está vacío se usa un texto general. */
     hostingProvider: "",
     /** Fecha de la última actualización de la política (AAAA-MM-DD). */
-    privacyPolicyUpdated: "2026-10-04",
+    privacyPolicyUpdated: "2026-10-05",
   },
 
   /** REDES SOCIALES: escribe la URL completa. Las vacías no se muestran. */

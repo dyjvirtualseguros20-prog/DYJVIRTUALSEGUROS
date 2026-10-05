@@ -18,7 +18,9 @@ const FILE = path.join(DIR, "quote-requests.json");
 
 async function readAll(): Promise<QuoteRequestRecord[]> {
   try {
-    return JSON.parse(await readFile(FILE, "utf8")) as QuoteRequestRecord[];
+    const rows = JSON.parse(await readFile(FILE, "utf8")) as QuoteRequestRecord[];
+    // Registros creados antes de existir el campo `source`.
+    return rows.map((r) => ({ ...r, source: r.source ?? "formulario" }));
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
     throw error;
@@ -68,6 +70,7 @@ export const localStore: QuoteRequestStore = {
         quoteAmount: null,
         contactedAt: null,
         advisorId: input.advisorId,
+        source: input.source,
       };
       rows.push(record);
       return { id: record.id, reference: record.reference, status: record.status, createdAt: record.createdAt };

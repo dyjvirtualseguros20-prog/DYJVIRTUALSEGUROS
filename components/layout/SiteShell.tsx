@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
+import { AssistantLauncher } from "@/components/chat/AssistantLauncher";
 import { Footer } from "./Footer";
 import { Header } from "./Header";
 import { WhatsAppFloat } from "./WhatsAppFloat";
 
-/** Estructura del sitio público: encabezado, contenido, pie de página y WhatsApp flotante. */
+/** Estructura del sitio público: encabezado, contenido, pie de página, WhatsApp flotante y asesor virtual. */
 export function SiteShell({ children }: { children: ReactNode }) {
   return (
     <>
@@ -17,6 +18,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
       <main id="contenido">{children}</main>
       <Footer />
       <WhatsAppFloat />
+      <AssistantLauncher />
     </>
   );
 }

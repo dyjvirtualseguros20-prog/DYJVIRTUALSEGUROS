@@ -19,6 +19,7 @@ import type {
   QuoteRequestReceipt,
   QuoteRequestRecord,
   QuoteRequestUpdate,
+  RequestSource,
 } from "@/types";
 import { requireAdmin } from "./auth";
 import { getBackend } from "./env";
@@ -43,13 +44,19 @@ function newReference(): string {
   return `SOL-${code}`;
 }
 
-/** Registra una solicitud validada con el estado "Nueva solicitud". */
+/**
+ * Registra una solicitud validada con el estado "Nueva solicitud".
+ * `source`: "formulario" (cotizador) o "asistente_ia" (asesor virtual).
+ * `notes`: observaciones opcionales del cliente (se guardan en form_data.observaciones).
+ */
 export async function createQuoteRequest(
   type: InsuranceType,
   form: AnyQuoteForm,
   advisorId: string | null = null,
+  { source = "formulario", notes }: { source?: RequestSource; notes?: string } = {},
 ): Promise<QuoteRequestReceipt> {
   const { contact, details } = toQuoteRequest(type, form);
+  const formData: Record<string, unknown> = notes ? { ...details, observaciones: notes } : details;
   const identification =
     "documentNumber" in details ? String(details.documentNumber) : "nit" in details ? String(details.nit) : null;
   const city = "city" in details ? String(details.city) : null;
@@ -67,8 +74,9 @@ export async function createQuoteRequest(
         whatsapp: `57${contact.phone}`,
         email: contact.email,
         city,
-        formData: details,
+        formData,
         advisorId: normalizeAdvisorId(advisorId),
+        source,
       });
       return { requestId: created.reference, status: created.status, createdAt: created.createdAt, isDemo: false };
     } catch (error) {

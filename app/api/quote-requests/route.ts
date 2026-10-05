@@ -8,7 +8,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { ADVISOR_COOKIE } from "@/lib/advisorLink";
-import { quoteApiBodySchema } from "@/lib/validation/quoteSchemas";
+import { quoteApiBodySchema, quoteRequestExtrasSchema } from "@/lib/validation/quoteSchemas";
 import { createQuoteRequest, StorageNotConfiguredError } from "@/server/quoteRequests";
 
 // Límite básico contra envíos masivos: 5 solicitudes por IP cada 10 minutos (por instancia).
@@ -42,7 +42,9 @@ export async function POST(request: Request) {
   }
 
   const parsed = quoteApiBodySchema.safeParse(body);
-  if (!parsed.success) {
+  const extras = quoteRequestExtrasSchema.safeParse(body);
+  if (!parsed.success || !extras.success) {
+    if (parsed.success) return NextResponse.json({ error: "Solicitud no válida." }, { status: 400 });
     const fieldErrors: Record<string, string> = {};
     for (const issue of parsed.error.issues) {
       const key = String(issue.path[1] ?? issue.path[0] ?? "_form");
@@ -55,7 +57,7 @@ export async function POST(request: Request) {
     // Asesor de la visita: se toma de la cookie que fijó el enlace (/cristian), nunca del formulario.
     // La base de datos vuelve a comprobar que exista y esté activo.
     const advisorId = (await cookies()).get(ADVISOR_COOKIE)?.value ?? null;
-    const receipt = await createQuoteRequest(parsed.data.insuranceType, parsed.data.form, advisorId);
+    const receipt = await createQuoteRequest(parsed.data.insuranceType, parsed.data.form, advisorId, extras.data);
     return NextResponse.json({ receipt }, { status: 201, headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("[api/quote-requests]", error);

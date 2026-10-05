@@ -7,6 +7,7 @@ import { formatCOP } from "@/lib/format";
 import { getProduct } from "@/lib/insurance";
 import { listAdvisors } from "@/server/advisors";
 import { getQuoteRequest } from "@/server/quoteRequests";
+import { REQUEST_SOURCES } from "@/types";
 import { RequestManageForm } from "@/components/admin/RequestManageForm";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { ExternalButton } from "@/components/ui/Button";
@@ -125,6 +126,7 @@ export default async function RequestDetailPage({ params }: Props) {
             <DataList
               items={[
                 { label: "Asesor", value: advisorText },
+                { label: "Origen", value: REQUEST_SOURCES[request.source] },
                 { label: "ID interno", value: <span className="font-mono text-xs">{request.id}</span> },
                 { label: "Última actualización", value: formatDateTime(request.updatedAt) },
                 {

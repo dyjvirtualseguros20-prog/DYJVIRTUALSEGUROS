@@ -23,6 +23,17 @@
     { "pattern": "dyjvirtualseguros.com", "custom_domain": true },
     { "pattern": "www.dyjvirtualseguros.com", "custom_domain": true },
   ],
+  // Límite de ráfagas del asesor virtual (/api/chat): 10 mensajes por minuto por visitante.
+  // El límite de 20 mensajes cada 10 minutos se aplica además en server/rateLimit.ts.
+  "ratelimits": [
+    {
+      "name": "CHAT_RATE_LIMITER",
+      "namespace_id": "1001",
+      "simple": { "limit": 10, "period": 60 },
+    },
+  ],
+  // ANTHROPIC_API_KEY (asesor virtual) NO va aquí: es un secreto. Se agrega en
+  // Cloudflare → Workers → dyj-virtual-seguros → Configuración → Variables y secretos.
   "observability": {
     "enabled": true,
   },

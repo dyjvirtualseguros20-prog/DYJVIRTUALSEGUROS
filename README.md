@@ -115,3 +115,26 @@ Al entrar por el enlace, `proxy.ts` guarda el asesor en una cookie segura (`ases
 | `active`    | `true`               | Para retirar a un asesor, ponlo en `false` (no lo borres: conserva su historial). |
 
 El enlace funciona en menos de un minuto. Migración: `supabase/migrations/0002_advisors.sql`.
+
+## Asesor virtual con IA (fase 1)
+
+Botón flotante encima del de WhatsApp que abre un chat con **Claude Haiku 4.5** (Anthropic).
+
+```
+ChatWidget ─► POST /api/chat ─► server/assistant.ts ─► Anthropic (solo desde el servidor)
+     └─ tarjeta de confirmación ─► POST /api/quote-requests (source = "asistente_ia")
+```
+
+- Responde solo con la información de la web (`config/`, `lib/insurance.ts`, campos de `lib/forms/quoteForms.ts`). No da precios ni inventa condiciones.
+- Cuando tiene los datos, muestra un resumen validado con las mismas reglas de los formularios. El cliente acepta la política y envía: la solicitud se guarda en `quote_requests` con `source = 'asistente_ia'` y el asesor del enlace (cookie), igual que un formulario.
+- **No se guardan conversaciones** (solo viven en la memoria de la página).
+- Límites: 1.000 caracteres por mensaje, 30 mensajes por conversación, 20 mensajes por visitante cada 10 minutos (más 10 por minuto con el binding `CHAT_RATE_LIMITER` de Cloudflare).
+- Migración: `supabase/migrations/0003_request_source.sql` (columna `source`). En `/admin` las solicitudes del chat llevan la etiqueta «Asistente IA».
+
+**Configuración**
+
+| Variable            | Dónde                                                                                                                 | Nota                                                                                                           |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `ANTHROPIC_API_KEY` | `.env.local` (local) · Cloudflare → Workers → dyj-virtual-seguros → Configuración → Variables y secretos → **Secret** | Obligatoria. Sin ella, en producción el botón no aparece.                                                      |
+| `ANTHROPIC_MODEL`   | opcional                                                                                                              | Por defecto `claude-haiku-4-5-20251001`.                                                                       |
+| `ASSISTANT_MOCK=1`  | solo `.env.local`                                                                                                     | Respuestas de prueba sin IA (escribe «demo vehiculos»). Se ignora si hay clave y nunca funciona en producción. |

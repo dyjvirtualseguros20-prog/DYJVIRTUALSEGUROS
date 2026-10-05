@@ -3,6 +3,7 @@ import type {
   QuoteRequestFilters,
   QuoteRequestRecord,
   QuoteRequestUpdate,
+  RequestSource,
   RequestStatus,
 } from "@/types";
 
@@ -19,6 +20,8 @@ export interface NewQuoteRequest {
   formData: Record<string, unknown>;
   /** Asesor de la visita (sin validar: la base de datos lo valida). */
   advisorId: string | null;
+  /** Origen: formulario o asistente virtual. */
+  source: RequestSource;
 }
 
 export interface CreatedQuoteRequest {

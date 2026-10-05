@@ -42,6 +42,7 @@ const SECTIONS = [
   ["datos", "Qué datos recopilamos"],
   ["finalidades", "Para qué usamos tus datos"],
   ["formularios", "Cómo usamos los datos de los formularios de cotización"],
+  ["asistente", "Asesor virtual con inteligencia artificial"],
   ["contacto", "Cómo te contactamos"],
   ["seguimiento", "Gestión y seguimiento de tu solicitud"],
   ["terceros", "Con quién compartimos tus datos"],
@@ -99,6 +100,9 @@ export default function PrivacyPage() {
               No vendemos tus datos. Solo los compartimos con quien es necesario para cotizar o contratar tu seguro.
             </li>
             <li>Puedes consultar, corregir o pedir que eliminemos tus datos cuando quieras, escribiéndonos.</li>
+            <li>
+              Si usas el asesor virtual con IA, no guardamos la conversación: solo la solicitud que decidas enviar.
+            </li>
           </ul>
         </div>
 
@@ -147,7 +151,10 @@ export default function PrivacyPage() {
           </p>
 
           <h2 id="datos">2. Qué datos recopilamos</h2>
-          <p>Solo recopilamos los datos que tú mismo nos das al llenar un formulario de cotización:</p>
+          <p>
+            Solo recopilamos los datos que tú mismo nos das al llenar un formulario de cotización o al enviar una
+            solicitud a través del asesor virtual (punto 5):
+          </p>
           <h3>Datos de identificación y contacto</h3>
           <ul>
             <li>Nombre completo.</li>
@@ -229,7 +236,49 @@ export default function PrivacyPage() {
             dependen de cada aseguradora.
           </p>
 
-          <h2 id="contacto">5. Cómo te contactamos</h2>
+          <h2 id="asistente">5. Asesor virtual con inteligencia artificial</h2>
+          <p>
+            Este sitio puede ofrecer un <strong>asesor virtual</strong>: un chat automático basado en inteligencia
+            artificial que te ayuda a:
+          </p>
+          <ul>
+            <li>Responder preguntas generales sobre seguros y sobre nuestros servicios.</li>
+            <li>Orientarte e identificar qué tipo de seguro se ajusta a tu necesidad.</li>
+            <li>Recopilar, si tú quieres, los datos necesarios para una solicitud de cotización.</li>
+          </ul>
+          <p>Así funciona y así tratamos tu información:</p>
+          <ul>
+            <li>
+              Los mensajes que escribes se procesan con <strong>Anthropic</strong> (Claude), un proveedor de
+              inteligencia artificial ubicado en Estados Unidos, que actúa como encargado del tratamiento. Por eso, el
+              contenido de tus mensajes se transmite fuera de Colombia solo para generar las respuestas. Según sus
+              condiciones comerciales, Anthropic no usa esos datos para entrenar sus modelos y puede conservarlos
+              temporalmente por motivos de seguridad, de acuerdo con sus propias políticas.
+            </li>
+            <li>
+              <strong>No guardamos las conversaciones</strong> en nuestra base de datos ni en tu navegador. La
+              conversación desaparece al cerrar el chat o la página.
+            </li>
+            <li>
+              Solo si decides enviar una solicitud, el asesor virtual te muestra un resumen; tú lo revisas, aceptas esta
+              política y pulsas «Enviar solicitud». En ese momento guardamos los mismos datos de un formulario de
+              cotización (punto 2), las observaciones que hayas querido agregar y una marca que indica que la solicitud
+              llegó por el asesor virtual. Desde ahí, se trata igual que cualquier otra solicitud (punto 4).
+            </li>
+            <li>
+              El asesor virtual es automático y puede equivocarse. No da precios ni condiciones definitivas: un asesor
+              de la agencia revisa cada solicitud y confirma la información.
+            </li>
+            <li>
+              No compartas en el chat datos sensibles (por ejemplo, información de salud), contraseñas ni datos
+              bancarios o de tarjetas.
+            </li>
+            <li>
+              Usar el asesor virtual es opcional: también puedes cotizar con los formularios o escribirnos por WhatsApp.
+            </li>
+          </ul>
+
+          <h2 id="contacto">6. Cómo te contactamos</h2>
           <p>
             Usaremos los datos de contacto que nos diste para comunicarnos contigo <strong>únicamente</strong> sobre tu
             solicitud de cotización y el seguro relacionado, por estos medios:
@@ -250,14 +299,14 @@ export default function PrivacyPage() {
             decírnoslo por cualquiera de nuestros canales.
           </p>
 
-          <h2 id="seguimiento">6. Gestión y seguimiento de tu solicitud</h2>
+          <h2 id="seguimiento">7. Gestión y seguimiento de tu solicitud</h2>
           <p>
             Para darte un buen servicio, registramos el avance de tu solicitud: su estado, las notas del asesor, el
             valor de la cotización y la fecha de contacto. A esta información solo acceden los asesores autorizados de
             la agencia, mediante un usuario y contraseña personales.
           </p>
 
-          <h2 id="terceros">7. Con quién compartimos tus datos</h2>
+          <h2 id="terceros">8. Con quién compartimos tus datos</h2>
           <p>
             <strong>No vendemos ni alquilamos tus datos personales.</strong> Solo los compartimos cuando es necesario
             para atender tu solicitud:
@@ -282,6 +331,10 @@ export default function PrivacyPage() {
                     : "El proveedor de alojamiento donde se publica este sitio web."}
                 </li>
                 <li>WhatsApp (Meta), cuando la comunicación se realiza por ese medio.</li>
+                <li>
+                  Anthropic: procesamiento de los mensajes del asesor virtual con inteligencia artificial (punto 5). Sus
+                  servidores están en Estados Unidos.
+                </li>
               </ul>
             </li>
             <li>
@@ -289,7 +342,7 @@ export default function PrivacyPage() {
             </li>
           </ul>
 
-          <h2 id="conservacion">8. Cuánto tiempo conservamos tus datos</h2>
+          <h2 id="conservacion">9. Cuánto tiempo conservamos tus datos</h2>
           <p>Conservamos tus datos solo durante el tiempo necesario para cumplir las finalidades de esta política:</p>
           <ul>
             <li>
@@ -308,7 +361,7 @@ export default function PrivacyPage() {
             </li>
           </ul>
 
-          <h2 id="seguridad">9. Cómo protegemos tus datos</h2>
+          <h2 id="seguridad">10. Cómo protegemos tus datos</h2>
           <p>Aplicamos medidas técnicas y administrativas razonables para proteger tu información, entre ellas:</p>
           <ul>
             <li>Acceso al panel de solicitudes solo para asesores autorizados, con usuario y contraseña personales.</li>
@@ -317,14 +370,17 @@ export default function PrivacyPage() {
             </li>
             <li>Conexiones cifradas entre tu navegador, nuestro sitio y la base de datos.</li>
             <li>Los datos del formulario no se guardan en tu navegador ni en tu dispositivo.</li>
-            <li>Controles para limitar envíos masivos o automatizados de formularios.</li>
+            <li>Las conversaciones con el asesor virtual no se almacenan en nuestra base de datos.</li>
+            <li>
+              Controles para limitar envíos masivos o automatizados de formularios y de mensajes al asesor virtual.
+            </li>
           </ul>
           <p>
             Ningún sistema es completamente infalible. Si llegáramos a detectar un incidente que afecte tus datos,
             tomaremos las medidas necesarias y te informaremos cuando la ley así lo exija.
           </p>
 
-          <h2 id="derechos">10. Tus derechos</h2>
+          <h2 id="derechos">11. Tus derechos</h2>
           <p>Como titular de tus datos personales, tienes derecho a:</p>
           <ul>
             <li>
@@ -350,7 +406,7 @@ export default function PrivacyPage() {
             </li>
           </ul>
 
-          <h2 id="ejercer">11. Cómo ejercer tus derechos</h2>
+          <h2 id="ejercer">12. Cómo ejercer tus derechos</h2>
           <p>Puedes enviarnos tu consulta, solicitud de corrección o eliminación, o reclamo por estos canales:</p>
           <ul>
             <li>
@@ -384,19 +440,20 @@ export default function PrivacyPage() {
             </li>
           </ul>
 
-          <h2 id="autorizacion">12. Tu autorización</h2>
+          <h2 id="autorizacion">13. Tu autorización</h2>
           <p>
-            Antes de enviar un formulario de cotización debes marcar la casilla «He leído y acepto la Política de
-            Tratamiento de Datos Personales». Al marcarla, nos autorizas de forma previa, expresa e informada a tratar
-            tus datos según esta política. Si no la marcas, el formulario no se envía.
+            Antes de enviar un formulario de cotización (o la solicitud que prepara el asesor virtual) debes marcar la
+            casilla «He leído y acepto la Política de Tratamiento de Datos Personales». Al marcarla, nos autorizas de
+            forma previa, expresa e informada a tratar tus datos según esta política. Si no la marcas, el formulario no
+            se envía.
           </p>
           <p>
             Dar tu autorización es voluntario, pero sin ella no podemos preparar tu cotización. Puedes revocarla en
-            cualquier momento por los canales del punto 11. Guardamos la fecha en que nos diste la autorización como
+            cualquier momento por los canales del punto 12. Guardamos la fecha en que nos diste la autorización como
             prueba de ella.
           </p>
 
-          <h2 id="cambios">13. Cambios a esta política</h2>
+          <h2 id="cambios">14. Cambios a esta política</h2>
           <p>
             Podemos actualizar esta política. Cuando hagamos cambios importantes, publicaremos la nueva versión en esta
             página con su fecha de actualización y, si la ley lo exige, te pediremos una nueva autorización.

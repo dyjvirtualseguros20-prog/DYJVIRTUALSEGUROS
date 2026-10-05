@@ -81,6 +81,20 @@ export interface QuoteRequestRecord {
    * registrar la solicitud y no se puede modificar desde /admin. null = sin asesor.
    */
   advisorId: string | null;
+  /** Por dónde llegó la solicitud (columna `source`). Lo fija el servidor. */
+  source: RequestSource;
+}
+
+/** Origen de una solicitud. La clave se guarda en la base de datos (columna `source`). */
+export const REQUEST_SOURCES = {
+  formulario: "Formulario",
+  asistente_ia: "Asistente IA",
+} as const;
+
+export type RequestSource = keyof typeof REQUEST_SOURCES;
+
+export function isRequestSource(value: unknown): value is RequestSource {
+  return typeof value === "string" && value in REQUEST_SOURCES;
 }
 
 /** Campos que el asesor puede modificar desde /admin. */

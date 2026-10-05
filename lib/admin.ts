@@ -5,6 +5,9 @@ import { QUOTE_FORMS, type FieldDef } from "@/lib/forms/quoteForms";
 import { getProduct } from "@/lib/insurance";
 import type { QuoteRequestRecord } from "@/types";
 
+/** Campos de form_data que no vienen de los formularios. */
+const EXTRA_LABELS: Record<string, string> = { observaciones: "Observaciones" };
+
 /**
  * Convierte form_data en filas "Etiqueta: valor" usando las mismas definiciones
  * de campos de los formularios (lib/forms/quoteForms.ts).
@@ -25,7 +28,7 @@ export function describeFormData(
       let text = String(value);
       if (field?.kind === "money" && typeof value === "number") text = formatCOP(value);
       if (field?.kind === "date") text = formatPlainDate(text);
-      return { label: field?.label ?? name, value: text };
+      return { label: field?.label ?? EXTRA_LABELS[name] ?? name, value: text };
     });
 }
 

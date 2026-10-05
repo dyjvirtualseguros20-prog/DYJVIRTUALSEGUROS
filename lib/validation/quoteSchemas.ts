@@ -246,3 +246,18 @@ export const quoteApiBodySchema = z.discriminatedUnion("insuranceType", [
   z.object({ insuranceType: z.literal("viajes"), form: viajesSchema }),
   z.object({ insuranceType: z.literal("empresas"), form: empresasSchema }),
 ]);
+
+/**
+ * Campos opcionales del cuerpo de POST /api/quote-requests:
+ * - source: "asistente_ia" cuando la solicitud la prepara el asesor virtual (por defecto, formulario).
+ * - notes: observaciones del cliente (las recoge el asistente).
+ */
+export const quoteRequestExtrasSchema = z.object({
+  source: z.enum(["formulario", "asistente_ia"]).optional(),
+  notes: z
+    .string()
+    .trim()
+    .max(500, "Máximo 500 caracteres.")
+    .transform((v) => v.replace(/[\u0000-\u001f\u007f]+/g, " ").trim())
+    .optional(),
+});
