@@ -27,12 +27,14 @@ import {
   obviousData,
   obviousExtras,
   obviousCity,
+  looksLikeName,
   obviousName,
   obviousNumbers,
   obviousOptions,
   trimPunctuation,
+  vehicleTypeFromLine,
 } from "./grounding";
-import { buildQuoteDraft, evaluateLead, fieldsFor, isInsuranceType, mergeLead } from "./lead";
+import { assistantFields, buildQuoteDraft, evaluateLead, isInsuranceType, isLeadComplete, mergeLead } from "./lead";
 import { RESPONSE_SCHEMA, systemPrompt } from "./prompt";
 
 export { AiError };
@@ -119,8 +121,15 @@ export async function replyToVisitor(
     ...obviousOptions(userText, type, { ...lead.fields, ...extracted }),
     ...extracted,
   };
+  // Un "nombre" que no parece nombre propio se descarta, venga del modelo o del texto.
+  if (datos.fullName && !looksLikeName(datos.fullName)) delete datos.fullName;
   // Nombre: si el modelo no lo vio (o solo tomó una palabra), se usa el que se reconoce en el texto.
   const name = obviousName(lastMessage);
+  // Tipo de vehículo por la línea conocida (CX-5 → Camioneta / SUV), solo si falta.
+  if (type === "vehiculos" && !datos.vehicleType && !lead.fields.vehicleType) {
+    const byLine = vehicleTypeFromLine(userText);
+    if (byLine) datos.vehicleType = byLine;
+  }
   // Ciudad: igual, si falta y el cliente nombró una.
   const city = obviousCity(lastMessage);
   if (city && !datos.city && !lead.fields.city) datos.city = city;
@@ -163,20 +172,21 @@ export async function replyToVisitor(
   if (next.insuranceType && (output.intent === "cotizar" || givingData || wantsInsurance)) {
     const { missing } = evaluateLead(next.insuranceType, next.fields);
 
-    // Completa → tarjeta de confirmación con todos los datos.
-    if (missing.length === 0) {
+    // Completa (todo lo obligatorio) → tarjeta de confirmación directamente.
+    if (isLeadComplete(next)) {
       const draft = buildQuoteDraft(next);
       if (draft) {
         return {
           lead: next,
           reply:
-            "¡Perfecto! 👍 Ya tengo todos tus datos. Revísalos aquí abajo y, si están bien, acepta la política de datos y pulsa «Enviar solicitud» para solicitar tu cotización.",
+            "Perfecto 👍 Ya tengo la información necesaria para solicitar tu cotización. ¿Está todo correcto? Si es así, acepta la política de datos y pulsa «Enviar solicitud». Si algo no está bien, escríbeme qué cambiar.",
           action: { type: "quote_draft", draft },
         };
       }
     }
 
-    const labels = new Map(fieldsFor(next.insuranceType).map((f) => [f.name, f.label]));
+    const { required, optional } = assistantFields(next.insuranceType);
+    const labels = new Map([...required, ...optional].map((f) => [f.name, f.label]));
     const corrections = Object.entries(rejected).map(([name, message]) => `${labels.get(name) ?? name}: ${message}`);
     // Si el cliente hizo una pregunta, se responde completa antes de la lista; si no, solo una confirmación.
     const leadIn = output.intent === "informacion" ? withoutQuestions(reply) : acknowledgment(reply);

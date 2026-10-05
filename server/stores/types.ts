@@ -15,7 +15,7 @@ export interface NewQuoteRequest {
   identification: string | null;
   phone: string;
   whatsapp: string;
-  email: string;
+  email: string | null;
   city: string | null;
   formData: Record<string, unknown>;
   /** Asesor de la visita (sin validar: la base de datos lo valida). */

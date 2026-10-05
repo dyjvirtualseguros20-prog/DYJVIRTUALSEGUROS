@@ -59,10 +59,12 @@ export default async function RequestDetailPage({ params }: Props) {
     { label: "WhatsApp", value: `+${request.whatsapp}` },
     {
       label: "Correo",
-      value: (
+      value: request.email ? (
         <a href={`mailto:${request.email}`} className="text-brand-700 hover:underline">
           {request.email}
         </a>
+      ) : (
+        <span className="text-slate-400">No lo indicó</span>
       ),
     },
     ...(request.city ? [{ label: "Ciudad", value: request.city }] : []),

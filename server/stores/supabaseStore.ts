@@ -19,7 +19,7 @@ interface Row {
   identification: string | null;
   phone: string;
   whatsapp: string;
-  email: string;
+  email: string | null;
   city: string | null;
   status: QuoteRequestRecord["status"];
   form_data: Record<string, unknown> | null;
@@ -79,7 +79,7 @@ export const supabaseStore: QuoteRequestStore = {
         p_identification: input.identification ?? "",
         p_phone: input.phone,
         p_whatsapp: input.whatsapp,
-        p_email: input.email,
+        p_email: input.email ?? "",
         p_city: input.city ?? "",
         p_form_data: input.formData,
         p_advisor_id: input.advisorId,

@@ -20,7 +20,13 @@ import type { InsuranceType } from "@/types";
 export interface InsurerQuoteInput {
   reference: string;
   insuranceType: InsuranceType;
-  contact: { fullName: string; phone: string; email: string; city: string | null; identification: string | null };
+  contact: {
+    fullName: string;
+    phone: string;
+    email: string | null;
+    city: string | null;
+    identification: string | null;
+  };
   details: Record<string, unknown>;
   notes?: string;
 }

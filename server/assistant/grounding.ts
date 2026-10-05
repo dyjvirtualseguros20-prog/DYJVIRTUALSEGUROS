@@ -202,26 +202,32 @@ export function obviousNumbers(lastMessage: string, missing: Set<string>): Recor
   return out;
 }
 
-/** Nombre completo: "me llamo …", "mi nombre es …", "soy …" o el primer elemento de una lista "Nombre Apellido, 1020…, Bogotá…". */
-export function obviousName(lastMessage: string): string | undefined {
-  const words = (s: string) => s.trim().split(/\s+/).filter(Boolean);
-  // Palabras que no aparecen en un nombre propio ("Es una camioneta de uso particular" no es un nombre).
-  const notName =
-    /^(es|una|un|el|la|los|las|mi|mis|tengo|quiero|necesito|uso|de|para|con|placa|correo|carro|vehiculo|camioneta|moto|seguro|todo|riesgo|particular|comercial|hola|vivo|en|y|que|soy)$/;
-  const isName = (s: string) =>
-    /^[\p{L}' .-]+$/u.test(s.trim()) &&
-    words(s).length >= 2 &&
-    words(s).length <= 6 &&
-    s.trim().length <= 80 &&
-    !words(s).some((w) => notName.test(fold(w)));
+/** Palabras que no aparecen en un nombre propio ("Es una camioneta de uso particular" no es un nombre). */
+const NOT_NAME =
+  /^(es|una|un|mi|mis|tengo|quiero|necesito|uso|para|con|placa|correo|carro|vehiculo|camioneta|moto|seguro|todo|riesgo|particular|comercial|hola|vivo|en|que|soy|cedula|celular|numero|ciudad|modelo|marca|asegurar|cotizar|gracias)$/;
 
+/** ¿Parece un nombre completo? (2 a 6 palabras, solo letras, sin palabras comunes de una frase). */
+export function looksLikeName(value: string): boolean {
+  const words = value.trim().split(/\s+/).filter(Boolean);
+  return (
+    /^[\p{L}' .-]+$/u.test(value.trim()) &&
+    words.length >= 2 &&
+    words.length <= 6 &&
+    value.trim().length <= 80 &&
+    !words.some((w) => NOT_NAME.test(fold(w)))
+  );
+}
+
+/** Nombre completo: "me llamo …", "mi nombre es …", "soy …" o el primer elemento de una lista "Nombre Apellido, 1020…". */
+export function obviousName(lastMessage: string): string | undefined {
   const intro = lastMessage.match(
     /(?:me llamo|mi nombre es|mi nombre completo es|soy)\s+([\p{L}' .-]+?)(?=\s*[,;.\n]|\s+(?:y|con|de|vivo|mi|c[eé]dula|cel|tel|correo|n[uú]mero)\b|$)/iu,
   );
-  if (intro && isName(intro[1])) return intro[1].trim();
+  if (intro && looksLikeName(intro[1])) return intro[1].trim();
 
-  const segments = lastMessage.split(/[,;\n]/);
-  if (segments.length >= 3 && isName(segments[0])) return segments[0].trim();
+  // Lista: el primer elemento es el nombre si lo que sigue trae datos (números o correo).
+  const [first, ...rest] = lastMessage.split(/[,;\n]/);
+  if (rest.length && /[\d@]/.test(rest.join(" ")) && first && looksLikeName(first)) return first.trim();
   return undefined;
 }
 
@@ -296,3 +302,174 @@ export function obviousCity(lastMessage: string): string | undefined {
 
 /** Quita comillas y signos sueltos al inicio o al final ("Particular”," → "Particular"). */
 export const trimPunctuation = (s: string) => s.replace(/^[\s"“”'«».,;:]+|[\s"“”'«».,;:]+$/g, "");
+
+/**
+ * Tipo de vehículo según la línea que escribió el cliente (dato conocido de cada modelo,
+ * no una suposición): "Mazda CX-5" → Camioneta / SUV, "Toyota Hilux" → Pickup.
+ * Si la línea no está en la lista, el asistente pregunta el tipo.
+ */
+const VEHICLE_LINES: Record<string, string[]> = {
+  "Camioneta / SUV": [
+    "cx3",
+    "cx30",
+    "cx5",
+    "cx50",
+    "cx9",
+    "cx90",
+    "tucson",
+    "santafe",
+    "creta",
+    "kona",
+    "venue",
+    "sportage",
+    "sorento",
+    "seltos",
+    "sonet",
+    "duster",
+    "captur",
+    "koleos",
+    "rav4",
+    "fortuner",
+    "prado",
+    "landcruiser",
+    "corollacross",
+    "xtrail",
+    "qashqai",
+    "kicks",
+    "tracker",
+    "captiva",
+    "equinox",
+    "trailblazer",
+    "tiguan",
+    "tcross",
+    "taos",
+    "touareg",
+    "escape",
+    "explorer",
+    "broncosport",
+    "territory",
+    "ecosport",
+    "vitara",
+    "grandvitara",
+    "scross",
+    "jimny",
+    "asx",
+    "outlander",
+    "eclipsecross",
+    "montero",
+    "forester",
+    "xv",
+    "crosstrek",
+    "outback",
+    "compass",
+    "renegade",
+    "cherokee",
+    "grandcherokee",
+    "wrangler",
+    "hrv",
+    "crv",
+    "wrv",
+    "pilot",
+    "x1",
+    "x3",
+    "x5",
+    "q3",
+    "q5",
+    "q7",
+    "glc",
+    "gla",
+    "gle",
+    "tiggo",
+    "jolion",
+    "h6",
+    "t5evo",
+    "kx3",
+  ],
+  Pickup: [
+    "hilux",
+    "ranger",
+    "frontier",
+    "navara",
+    "dmax",
+    "amarok",
+    "l200",
+    "colorado",
+    "oroch",
+    "alaskan",
+    "tacoma",
+    "bt50",
+    "tundra",
+    "f150",
+    "ram",
+    "saveiro",
+    "strada",
+    "montana",
+    "maverick",
+    "poer",
+    "t60",
+  ],
+  Automóvil: [
+    "mazda2",
+    "mazda3",
+    "mazda6",
+    "spark",
+    "sail",
+    "onix",
+    "joy",
+    "aveo",
+    "cruze",
+    "logan",
+    "sandero",
+    "stepway",
+    "kwid",
+    "picanto",
+    "rio",
+    "cerato",
+    "k3",
+    "accent",
+    "i10",
+    "i20",
+    "elantra",
+    "yaris",
+    "corolla",
+    "march",
+    "versa",
+    "sentra",
+    "swift",
+    "dzire",
+    "baleno",
+    "gol",
+    "polo",
+    "virtus",
+    "jetta",
+    "golf",
+    "fiesta",
+    "focus",
+    "mobi",
+    "argo",
+    "cronos",
+    "208",
+    "2008",
+    "3008",
+    "clio",
+    "city",
+    "civic",
+    "accord",
+    "serie3",
+    "a3",
+    "a4",
+    "clasec",
+    "clasea",
+  ],
+};
+
+export function vehicleTypeFromLine(userText: string): string | undefined {
+  const compactText = fold(userText).replace(/[^a-z0-9]/g, " ");
+  const tokens = compactText.split(/\s+/).filter(Boolean);
+  // Une pares de palabras ("cx 5" → "cx5", "santa fe" → "santafe") para reconocer las líneas.
+  const candidates = new Set([...tokens, ...tokens.slice(0, -1).map((t, i) => t + tokens[i + 1])]);
+  const matches = Object.entries(VEHICLE_LINES)
+    .filter(([, lines]) => lines.some((line) => candidates.has(line)))
+    .map(([type]) => type);
+  return matches.length === 1 ? matches[0] : undefined;
+}

@@ -5,12 +5,12 @@
  * - submitQuoteRequest(): envía el formulario al backend (POST /api/quote-requests),
  *   que lo guarda en Supabase con el estado "Nueva solicitud".
  */
-import { validateQuoteForm, type AnyQuoteForm } from "@/lib/validation/quoteSchemas";
+import { validateQuoteForm, type AnyQuoteForm, type AssistantQuoteForm } from "@/lib/validation/quoteSchemas";
 import type { InsuranceType, QuoteRequest, QuoteRequestReceipt } from "@/types";
 import { ServiceError } from "./config";
 
 /** Separa los datos de contacto de los detalles específicos de cada seguro. */
-export function toQuoteRequest(insuranceType: InsuranceType, form: AnyQuoteForm): QuoteRequest {
+export function toQuoteRequest(insuranceType: InsuranceType, form: AnyQuoteForm | AssistantQuoteForm): QuoteRequest {
   const { fullName, phone, email, dataConsent, ...details } = form;
   return {
     insuranceType,

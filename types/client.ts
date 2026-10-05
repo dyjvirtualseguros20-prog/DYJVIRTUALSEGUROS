@@ -28,7 +28,8 @@ export function isRequestStatus(value: string): value is RequestStatus {
 export interface ClientContact {
   fullName: string;
   phone: string;
-  email: string;
+  /** Opcional solo en solicitudes del asesor virtual. */
+  email?: string;
 }
 
 /**
@@ -68,7 +69,8 @@ export interface QuoteRequestRecord {
   phone: string;
   /** Número para WhatsApp con indicativo, solo dígitos (p. ej. 573001234567). */
   whatsapp: string;
-  email: string;
+  /** null en solicitudes del asesor virtual sin correo. */
+  email: string | null;
   city: string | null;
   status: RequestStatus;
   /** Datos específicos del formulario de cada seguro. */

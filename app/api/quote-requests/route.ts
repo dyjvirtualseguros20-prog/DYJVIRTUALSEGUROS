@@ -8,7 +8,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { ADVISOR_COOKIE } from "@/lib/advisorLink";
-import { quoteApiBodySchema, quoteRequestExtrasSchema } from "@/lib/validation/quoteSchemas";
+import { assistantApiBodySchema, quoteApiBodySchema, quoteRequestExtrasSchema } from "@/lib/validation/quoteSchemas";
 import { createQuoteRequest, StorageNotConfiguredError } from "@/server/quoteRequests";
 
 // Límite básico contra envíos masivos: 5 solicitudes por IP cada 10 minutos (por instancia).
@@ -41,8 +41,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Solicitud no válida." }, { status: 400 });
   }
 
-  const parsed = quoteApiBodySchema.safeParse(body);
   const extras = quoteRequestExtrasSchema.safeParse(body);
+  // El asesor virtual tiene reglas propias (correo opcional; cédula y ciudad obligatorias).
+  // El formulario tradicional sigue usando exactamente sus reglas.
+  const parsed =
+    extras.success && extras.data.source === "asistente_ia"
+      ? assistantApiBodySchema.safeParse(body)
+      : quoteApiBodySchema.safeParse(body);
   if (!parsed.success || !extras.success) {
     if (parsed.success) return NextResponse.json({ error: "Solicitud no válida." }, { status: 400 });
     const fieldErrors: Record<string, string> = {};

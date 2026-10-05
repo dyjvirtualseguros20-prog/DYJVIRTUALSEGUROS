@@ -177,19 +177,21 @@ const tripDates = z.object({
   returnDate: isoDate("la fecha de regreso"),
 });
 
-export const viajesSchema = z
-  .object({
-    ...contactFields,
-    destination: text("el destino", 80),
-    ...tripDates.shape,
-    travelers: integer("el número de viajeros", 1, 20, "Entre 1 y 20 viajeros."),
-  })
-  .refine((d) => d.returnDate >= d.departureDate, {
-    error: "La fecha de regreso debe ser igual o posterior a la de salida.",
-    path: ["returnDate"],
-    // Se valida aunque otros campos tengan errores, siempre que las fechas sean válidas.
-    when: (payload) => tripDates.safeParse(payload.value).success,
-  });
+const viajesFields = {
+  ...contactFields,
+  destination: text("el destino", 80),
+  ...tripDates.shape,
+  travelers: integer("el número de viajeros", 1, 20, "Entre 1 y 20 viajeros."),
+};
+
+const returnAfterDeparture = {
+  error: "La fecha de regreso debe ser igual o posterior a la de salida.",
+  path: ["returnDate"],
+  // Se valida aunque otros campos tengan errores, siempre que las fechas sean válidas.
+  when: (payload: { value: unknown }) => tripDates.safeParse(payload.value).success,
+};
+
+export const viajesSchema = z.object(viajesFields).refine((d) => d.returnDate >= d.departureDate, returnAfterDeparture);
 
 export const empresasSchema = z.object({
   ...contactFields,
@@ -261,3 +263,55 @@ export const quoteRequestExtrasSchema = z.object({
     .transform((v) => v.replace(/[\u0000-\u001f\u007f]+/g, " ").trim())
     .optional(),
 });
+
+/* ───────────────────────── Asesor virtual (reglas propias) ───────────────────────── */
+
+/** Correo opcional: vacío o un correo válido. */
+const optionalEmail = z
+  .string()
+  .trim()
+  .transform((v) => v.toLowerCase())
+  .pipe(z.union([z.literal(""), z.email("Ingresa un correo válido, por ejemplo nombre@correo.com.")]))
+  .optional()
+  .transform((v) => v || undefined);
+
+/**
+ * Reglas de las solicitudes del ASESOR VIRTUAL: las mismas del formulario, pero
+ * - el correo es opcional, y
+ * - la identificación y la ciudad son obligatorias en todos los seguros.
+ * El formulario tradicional NO cambia (usa quoteSchemas).
+ */
+export const assistantQuoteSchemas = {
+  vehiculos: z.object({ ...vehiculosSchema.shape, email: optionalEmail }),
+  vida: z.object({ ...vidaSchema.shape, email: optionalEmail }),
+  hogar: z.object({ ...hogarSchema.shape, email: optionalEmail, documentNumber }),
+  salud: z.object({ ...saludSchema.shape, email: optionalEmail }),
+  viajes: z
+    .object({ ...viajesFields, email: optionalEmail, documentNumber, city })
+    .refine((d) => d.returnDate >= d.departureDate, returnAfterDeparture),
+  empresas: z.object({ ...empresasSchema.shape, email: optionalEmail, documentNumber }),
+} satisfies Record<InsuranceType, z.ZodType>;
+
+/** Formulario del asistente validado (el correo puede faltar). */
+export type AssistantQuoteForm = z.output<(typeof assistantQuoteSchemas)[InsuranceType]>;
+
+export function validateAssistantForm<T extends InsuranceType>(type: T, values: unknown) {
+  const result = assistantQuoteSchemas[type].safeParse(values);
+  if (result.success) return { success: true as const, data: result.data as Record<string, unknown> };
+  const errors: Record<string, string> = {};
+  for (const issue of result.error.issues) {
+    const key = String(issue.path[0] ?? "_form");
+    if (!errors[key]) errors[key] = issue.message;
+  }
+  return { success: false as const, errors };
+}
+
+/** Cuerpo de POST /api/quote-requests cuando source = "asistente_ia". */
+export const assistantApiBodySchema = z.discriminatedUnion("insuranceType", [
+  z.object({ insuranceType: z.literal("vehiculos"), form: assistantQuoteSchemas.vehiculos }),
+  z.object({ insuranceType: z.literal("vida"), form: assistantQuoteSchemas.vida }),
+  z.object({ insuranceType: z.literal("hogar"), form: assistantQuoteSchemas.hogar }),
+  z.object({ insuranceType: z.literal("salud"), form: assistantQuoteSchemas.salud }),
+  z.object({ insuranceType: z.literal("viajes"), form: assistantQuoteSchemas.viajes }),
+  z.object({ insuranceType: z.literal("empresas"), form: assistantQuoteSchemas.empresas }),
+]);

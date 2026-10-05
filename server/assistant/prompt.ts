@@ -10,7 +10,7 @@ import { siteConfig } from "@/config/site";
 import type { LeadState } from "@/lib/chat";
 import { INSURANCE_PRODUCTS, getProduct } from "@/lib/insurance";
 import { INSURANCE_TYPES, type Advisor } from "@/types";
-import { evaluateLead, fieldsFor } from "./lead";
+import { assistantFields, evaluateLead, missingExtras } from "./lead";
 
 /** Indicaciones de formato por campo (las reglas reales están en lib/validation/quoteSchemas.ts). */
 const FIELD_HINTS: Record<string, string> = {
@@ -85,7 +85,8 @@ FLUJO COMERCIAL (objetivo: completar la solicitud con el menor número de mensaj
 6. El sistema decide cuándo están completos los datos y muestra el resumen para confirmar. Nunca digas que ya tienes todos los datos ni pidas permiso para la política de datos.
 
 CAMPOS DE CADA SOLICITUD (nombre interno = qué es)
-${INSURANCE_TYPES.map((t) => `${t}: ${fieldsFor(t).map(describeField).join("; ")}`).join("\n")}
+${INSURANCE_TYPES.map((t) => `${t}: ${assistantFields(t).required.map(describeField).join("; ")}; email = correo (opcional)`).join("\n")}
+En vehiculos también se necesitan "uso" (particular o comercial) y "cobertura" (ej. todo riesgo).
 
 FORMATO DE RESPUESTA: responde SIEMPRE con un objeto JSON:
 - "reply": tu mensaje para el cliente (máximo 60 palabras).
@@ -124,7 +125,8 @@ function context(advisor: Advisor | null, today: string, lead: LeadState): strin
   } else {
     const product = getProduct(lead.insuranceType);
     const { missing } = evaluateLead(lead.insuranceType, lead.fields);
-    const known = fieldsFor(lead.insuranceType)
+    const { required, optional } = assistantFields(lead.insuranceType);
+    const known = [...required, ...optional]
       .filter((f) => lead.fields[f.name])
       .map((f) => `${f.label}: ${lead.fields[f.name]}`);
     lines.push(`- Seguro: ${product.name} [${lead.insuranceType}].`);
@@ -132,9 +134,13 @@ function context(advisor: Advisor | null, today: string, lead: LeadState): strin
     if (lead.coverage) lines.push(`- Cobertura que busca: ${lead.coverage}.`);
     if (lead.useType) lines.push(`- Uso: ${lead.useType}.`);
     if (lead.notes) lines.push(`- Observaciones registradas: ${lead.notes}.`);
+    const pending = [
+      ...missing.map((f) => f.name),
+      ...missingExtras(lead).map((e) => (e === "useType" ? "uso" : "cobertura")),
+    ];
     lines.push(
-      missing.length
-        ? `- Datos que aún faltan (el sistema los pedirá agrupados; no los preguntes tú): ${missing.map((f) => f.name).join(", ")}.`
+      pending.length
+        ? `- Datos que aún faltan (el sistema los pedirá agrupados; no los preguntes tú): ${pending.join(", ")}.`
         : "- Ya están todos los datos de la solicitud.",
     );
   }

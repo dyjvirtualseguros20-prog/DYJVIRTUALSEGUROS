@@ -6,7 +6,12 @@ import { getProduct } from "@/lib/insurance";
 import type { QuoteRequestRecord } from "@/types";
 
 /** Campos de form_data que no vienen de los formularios. */
-const EXTRA_LABELS: Record<string, string> = { observaciones: "Observaciones" };
+const EXTRA_LABELS: Record<string, string> = {
+  observaciones: "Observaciones",
+  // Datos que el asesor virtual pide en todos los seguros.
+  documentNumber: "Número de identificación",
+  city: "Ciudad",
+};
 
 /**
  * Convierte form_data en filas "Etiqueta: valor" usando las mismas definiciones

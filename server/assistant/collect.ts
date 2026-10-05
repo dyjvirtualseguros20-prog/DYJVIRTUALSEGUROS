@@ -10,7 +10,7 @@ import type { LeadState } from "@/lib/chat";
 import type { FieldDef } from "@/lib/forms/quoteForms";
 import { formatPlainDate } from "@/lib/datetime";
 import { formatCOP } from "@/lib/format";
-import { fieldsFor } from "./lead";
+import { assistantFields, missingExtras } from "./lead";
 
 /** Cómo se pide cada dato en la lista. */
 const ASK_LABEL: Record<string, string> = {
@@ -66,7 +66,8 @@ function formatValue(field: FieldDef, value: string): string {
 /** Líneas "✅ …" con lo que ya se sabe. */
 export function knownLines(lead: LeadState): string[] {
   if (!lead.insuranceType) return [];
-  const defs = fieldsFor(lead.insuranceType);
+  const { required, optional } = assistantFields(lead.insuranceType);
+  const defs = [...required, ...optional];
   const lines: string[] = [];
   const { brand, model } = lead.fields;
   if (brand || model) lines.push(`🚗 Vehículo: ${[brand, model].filter(Boolean).join(" ")}`);
@@ -76,7 +77,7 @@ export function knownLines(lead: LeadState): string[] {
     lines.push(`${KNOWN_LABEL[field.name] ?? `✅ ${field.label}`}: ${formatValue(field, value)}`);
   }
   if (lead.coverage) lines.push(`🛡️ Cobertura: ${lead.coverage}`);
-  if (lead.useType) lines.push(`🚦 Uso: ${lead.useType}`);
+  if (lead.useType) lines.push(`🏷️ Uso: ${lead.useType}`);
   return lines;
 }
 
@@ -93,11 +94,16 @@ export function missingBullets(lead: LeadState, missing: FieldDef[]): string[] {
     }
     bullets.push(ASK_LABEL[field.name] ?? field.label);
   }
-  // Datos útiles para las aseguradoras (opcionales: no bloquean la solicitud).
-  if (lead.insuranceType === "vehiculos") {
-    if (!lead.coverage) bullets.push("Cobertura que buscas, por ejemplo todo riesgo (opcional)");
-    if (!lead.useType) bullets.push("Uso del vehículo: particular o comercial (opcional)");
+  // Vehículos: uso y cobertura también son obligatorios.
+  for (const extra of missingExtras(lead)) {
+    bullets.push(
+      extra === "useType"
+        ? "Uso del vehículo: particular o comercial"
+        : "Cobertura que buscas (por ejemplo, todo riesgo)",
+    );
   }
+  // El correo es opcional: se menciona, pero no bloquea la solicitud.
+  if (!lead.fields.email) bullets.push("Correo electrónico (opcional)");
   return bullets;
 }
 

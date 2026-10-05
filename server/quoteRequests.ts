@@ -11,7 +11,7 @@ import "server-only";
  */
 import { randomInt } from "node:crypto";
 import { normalizeAdvisorId } from "@/lib/advisorLink";
-import type { AnyQuoteForm } from "@/lib/validation/quoteSchemas";
+import type { AnyQuoteForm, AssistantQuoteForm } from "@/lib/validation/quoteSchemas";
 import { toQuoteRequest } from "@/services/clients";
 import type {
   InsuranceType,
@@ -51,7 +51,7 @@ function newReference(): string {
  */
 export async function createQuoteRequest(
   type: InsuranceType,
-  form: AnyQuoteForm,
+  form: AnyQuoteForm | AssistantQuoteForm,
   advisorId: string | null = null,
   { source = "formulario", notes }: { source?: RequestSource; notes?: string } = {},
 ): Promise<QuoteRequestReceipt> {
@@ -72,7 +72,8 @@ export async function createQuoteRequest(
         phone: contact.phone,
         // El formulario pide un único número "Teléfono / WhatsApp" (10 dígitos, Colombia).
         whatsapp: `57${contact.phone}`,
-        email: contact.email,
+        // Solo el asesor virtual puede enviar sin correo (la base de datos lo exige al formulario).
+        email: contact.email || null,
         city,
         formData,
         advisorId: normalizeAdvisorId(advisorId),
