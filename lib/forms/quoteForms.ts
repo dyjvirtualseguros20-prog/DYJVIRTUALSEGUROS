@@ -263,7 +263,7 @@ export const QUOTE_FORMS: Record<InsuranceType, FormSection[]> = {
 
 /** Valores iniciales vacíos de un formulario. */
 export function emptyValues(type: InsuranceType): Record<string, string | boolean> {
-  const values: Record<string, string | boolean> = { dataConsent: false };
+  const values: Record<string, string | boolean> = { privacyAccepted: false, dataConsent: false, insurerConsent: false };
   for (const section of QUOTE_FORMS[type]) {
     for (const field of section.fields) values[field.name] = "";
   }

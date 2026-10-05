@@ -62,12 +62,17 @@ export const siteConfig = {
   },
 
   /**
-   * DATOS LEGALES para la Política de Tratamiento de Datos (/politica-de-privacidad).
-   * Los campos vacíos aparecen en la página como "PENDIENTE DE COMPLETAR".
+   * DATOS LEGALES para la Política de Tratamiento de Datos (/politica-de-privacidad)
+   * y los Términos y Condiciones (/terminos-y-condiciones).
+   * Los campos vacíos aparecen en las páginas como "[POR COMPLETAR]": nunca se inventan.
    */
   legal: {
-    /** NIT con dígito de verificación, p. ej. "900.123.456-7". */
+    /** NIT sin dígito de verificación. */
     nit: "900788292",
+    /** Dígito de verificación del NIT (aparece en el RUT), p. ej. "7". */
+    nitCheckDigit: "",
+    /** Nombre del representante legal (aparece en el certificado de Cámara de Comercio). */
+    legalRepresentative: "",
     /** Dirección física del domicilio principal. */
     address: "Carrera 53 # 176-63",
     /** Ciudad del domicilio principal. */
@@ -81,10 +86,15 @@ export const siteConfig = {
      * Si se deja vacío, la política usa un texto general (sin plazo fijo).
      */
     retentionPeriod: "",
-    /** Proveedor donde se publicará la web (p. ej. "Vercel Inc."). Opcional: si está vacío se usa un texto general. */
-    hostingProvider: "",
+    /** Proveedor de alojamiento del sitio. */
+    hostingProvider: "Cloudflare, Inc.",
     /** Fecha de la última actualización de la política (AAAA-MM-DD). */
     privacyPolicyUpdated: "2026-10-05",
+    /** Versión de la política: se guarda con cada autorización. Súbela si cambias el texto. */
+    privacyPolicyVersion: "2.0",
+    /** Términos y condiciones: fecha y versión (se guardan con cada solicitud). */
+    termsUpdated: "2026-10-05",
+    termsVersion: "1.0",
   },
 
   /** REDES SOCIALES: escribe la URL completa. Las vacías no se muestran. */

@@ -129,6 +129,7 @@ export default async function RequestDetailPage({ params }: Props) {
               items={[
                 { label: "Asesor", value: advisorText },
                 { label: "Origen", value: REQUEST_SOURCES[request.source] },
+                ...consentItems(request.consent),
                 { label: "ID interno", value: <span className="font-mono text-xs">{request.id}</span> },
                 { label: "Última actualización", value: formatDateTime(request.updatedAt) },
                 {
@@ -158,4 +159,33 @@ export default async function RequestDetailPage({ params }: Props) {
       </div>
     </Container>
   );
+}
+
+/**
+ * Autorizaciones que dio el cliente (quote_requests.consent). Lo más importante para el asesor:
+ * si NO autorizó compartir sus datos con aseguradoras, hay que pedírselo antes de hacerlo.
+ */
+function consentItems(consent: Record<string, unknown>) {
+  if (!consent || !consent.accepted_at) {
+    return [
+      { label: "Autorizaciones", value: "Registrada antes del detalle de autorizaciones (solo fecha de solicitud)." },
+    ];
+  }
+  const yes = (v: unknown) => (v === true ? "Sí" : "No");
+  return [
+    {
+      label: "Autorizaciones",
+      value: `Política v${String(consent.privacy_policy_version)} y términos v${String(consent.terms_version)} · ${formatDateTime(String(consent.accepted_at))}`,
+    },
+    { label: "Uso de datos para la cotización", value: yes(consent.data_processing) },
+    {
+      label: "Compartir con aseguradoras",
+      value:
+        consent.insurer_transfer === true ? (
+          "Sí, autorizado"
+        ) : (
+          <strong className="text-amber-700">No: pídele autorización antes de compartir sus datos</strong>
+        ),
+    },
+  ];
 }

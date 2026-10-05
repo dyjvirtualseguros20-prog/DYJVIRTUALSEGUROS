@@ -93,9 +93,12 @@ const birthDate = isoDate("tu fecha de nacimiento")
   .refine((v) => ageFrom(v) >= 18, "Debes ser mayor de edad para solicitar la cotización.")
   .refine((v) => ageFrom(v) <= 100, "Revisa la fecha de nacimiento.");
 
-const consent = z.literal(true, "Debes aceptar la política de tratamiento de datos para continuar.");
+/** Autorizaciones (ver lib/legal.ts): A y B obligatorias, C opcional. */
+const privacyAccepted = z.literal(true, "Debes leer y aceptar la Política de Tratamiento de Datos y los Términos para continuar.");
+const consent = z.literal(true, "Debes autorizar el uso de tus datos para gestionar tu cotización.");
+const insurerConsent = z.boolean().optional();
 
-const contactFields = { fullName, phone, email, dataConsent: consent };
+const contactFields = { fullName, phone, email, privacyAccepted, dataConsent: consent, insurerConsent };
 
 /* ───────────────────────────── Opciones de las listas ───────────────────────────── */
 

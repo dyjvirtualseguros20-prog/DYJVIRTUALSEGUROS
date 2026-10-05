@@ -25,7 +25,7 @@ interface UiMessage extends ChatMessage {
   local?: boolean;
 }
 
-const GREETING = `👋 ¡Hola! Soy el Asesor Virtual de ${siteConfig.name}.\nEstoy aquí para ayudarte a encontrar el seguro que necesitas. ¿En qué puedo ayudarte?`;
+const GREETING = `👋 ¡Hola! Soy el Asesor Virtual de ${siteConfig.name}, un asistente con inteligencia artificial.\nEstoy aquí para ayudarte a encontrar el seguro que necesitas. ¿En qué puedo ayudarte?`;
 const TIP_KEY = "dyj-chat-tip-visto";
 
 let nextId = 1;
@@ -367,9 +367,14 @@ export function ChatWidget({ whatsappNumber, advisorName }: { whatsappNumber: st
             </button>
           </div>
           <p className="mt-2 text-[11px] leading-snug text-slate-400">
-            Asistente con IA: puede equivocarse y no da precios. No compartas datos sensibles.{" "}
+            Asistente virtual con IA (no es una persona): puede equivocarse y no da precios. No compartas datos de salud
+            ni bancarios.{" "}
             <Link href="/politica-de-privacidad" className="underline underline-offset-2 hover:text-slate-600">
-              Política de datos
+              Datos
+            </Link>{" "}
+            ·{" "}
+            <Link href="/terminos-y-condiciones" className="underline underline-offset-2 hover:text-slate-600">
+              Términos
             </Link>
             {input.length > CHAT_LIMITS.maxUserChars - 200 && (
               <span className="ml-1 font-semibold text-slate-500">

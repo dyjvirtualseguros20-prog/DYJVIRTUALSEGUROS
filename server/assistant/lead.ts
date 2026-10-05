@@ -23,6 +23,9 @@ export function fieldsFor(type: InsuranceType): FieldDef[] {
   return QUOTE_FORMS[type].flatMap((section) => section.fields);
 }
 
+/** Las autorizaciones las da el cliente en la tarjeta; aquí solo se validan los datos. */
+const CONSENTS_FOR_VALIDATION = { privacyAccepted: true, dataConsent: true };
+
 const ALL_DEFS = INSURANCE_TYPES.flatMap((t) => fieldsFor(t));
 const defOf = (name: string) => ALL_DEFS.find((d) => d.name === name) as FieldDef;
 /** Datos personales que se piden primero, en este orden. */
@@ -86,7 +89,7 @@ export interface LeadEvaluation {
 export function evaluateLead(type: InsuranceType, fields: Record<string, string>): LeadEvaluation {
   const defs = allFieldsOf(type);
   const candidate = keepKnown(fields, (name) => defs.some((d) => d.name === name));
-  const result = validateAssistantForm(type, { ...candidate, dataConsent: true });
+  const result = validateAssistantForm(type, { ...candidate, ...CONSENTS_FOR_VALIDATION });
   const fieldErrors = result.success ? {} : result.errors;
 
   const valid: Record<string, string> = {};
@@ -190,7 +193,7 @@ const CARD_LABEL: Record<string, string> = {
 export function buildQuoteDraft(lead: LeadState): QuoteDraft | null {
   if (!lead.insuranceType || !isLeadComplete(lead)) return null;
   const type = lead.insuranceType;
-  const result = validateAssistantForm(type, { ...lead.fields, dataConsent: true });
+  const result = validateAssistantForm(type, { ...lead.fields, ...CONSENTS_FOR_VALIDATION });
   if (!result.success) return null;
 
   const parsed = result.data;

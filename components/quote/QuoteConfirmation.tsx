@@ -1,6 +1,7 @@
 "use client";
 
 import { getProduct } from "@/lib/insurance";
+import { QUOTE_DISCLAIMER } from "@/lib/legal";
 import { whatsappUrl } from "@/lib/whatsapp";
 import { REQUEST_STATUSES, type InsuranceType, type QuoteRequestReceipt } from "@/types";
 import { Button, ExternalButton } from "@/components/ui/Button";
@@ -56,6 +57,7 @@ export function QuoteConfirmation({
             </li>
           ))}
         </ol>
+        <p className="mt-4 text-xs leading-relaxed text-slate-500">{QUOTE_DISCLAIMER}</p>
       </div>
 
       <div className="flex flex-col items-center gap-5 rounded-3xl bg-brand-900 p-6 text-center sm:p-10">

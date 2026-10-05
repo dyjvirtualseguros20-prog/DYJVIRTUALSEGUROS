@@ -9,6 +9,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { ADVISOR_COOKIE } from "@/lib/advisorLink";
 import { assistantApiBodySchema, quoteApiBodySchema, quoteRequestExtrasSchema } from "@/lib/validation/quoteSchemas";
+import { buildConsentRecord } from "@/lib/legal";
 import { createQuoteRequest, StorageNotConfiguredError } from "@/server/quoteRequests";
 
 // Límite básico contra envíos masivos: 5 solicitudes por IP cada 10 minutos (por instancia).
@@ -62,7 +63,12 @@ export async function POST(request: Request) {
     // Asesor de la visita: se toma de la cookie que fijó el enlace (/cristian), nunca del formulario.
     // La base de datos vuelve a comprobar que exista y esté activo.
     const advisorId = (await cookies()).get(ADVISOR_COOKIE)?.value ?? null;
-    const receipt = await createQuoteRequest(parsed.data.insuranceType, parsed.data.form, advisorId, extras.data);
+    // Registro de autorizaciones: lo arma el servidor (fecha, versiones de la política y los términos, origen).
+    const consent = buildConsentRecord(parsed.data.form, extras.data.source ?? "formulario");
+    const receipt = await createQuoteRequest(parsed.data.insuranceType, parsed.data.form, advisorId, {
+      ...extras.data,
+      consent,
+    });
     return NextResponse.json({ receipt }, { status: 201, headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("[api/quote-requests]", error);

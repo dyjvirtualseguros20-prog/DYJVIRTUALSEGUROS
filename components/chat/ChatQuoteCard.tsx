@@ -1,11 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import type { QuoteDraft } from "@/lib/chat";
+import { QUOTE_DISCLAIMER } from "@/lib/legal";
 import { getProduct } from "@/lib/insurance";
 import type { QuoteRequestReceipt } from "@/types";
 import { Icon } from "@/components/ui/Icon";
+import { ConsentChecks, type ConsentValues } from "@/components/legal/ConsentChecks";
 
 type State =
   | { status: "idle" | "sending" }
@@ -26,13 +27,19 @@ export function ChatQuoteCard({
   onSent: (receipt: QuoteRequestReceipt) => void;
   onCorrect: () => void;
 }) {
-  const [consent, setConsent] = useState(false);
+  const [consent, setConsent] = useState<ConsentValues>({
+    privacyAccepted: false,
+    dataConsent: false,
+    insurerConsent: false,
+  });
+  // A y B son obligatorias; C (aseguradoras) es opcional.
+  const canSend = consent.privacyAccepted && consent.dataConsent;
   const [state, setState] = useState<State>({ status: "idle" });
   const product = getProduct(draft.insuranceType);
   const sent = state.status === "sent";
 
   async function submit() {
-    if (!consent || state.status === "sending" || sent) return;
+    if (!canSend || state.status === "sending" || sent) return;
     setState({ status: "sending" });
     try {
       const response = await fetch("/api/quote-requests", {
@@ -40,7 +47,7 @@ export function ChatQuoteCard({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           insuranceType: draft.insuranceType,
-          form: { ...draft.form, dataConsent: true },
+          form: { ...draft.form, ...consent },
           source: "asistente_ia",
           notes: draft.notes,
         }),
@@ -87,27 +94,16 @@ export function ChatQuoteCard({
         </p>
       ) : (
         <>
-          <label className="mt-4 flex items-start gap-2.5 text-xs leading-relaxed text-slate-600">
-            <input
-              type="checkbox"
-              checked={consent}
-              onChange={(e) => setConsent(e.target.checked)}
-              aria-label="Acepto la Política de Tratamiento de Datos Personales"
-              className="mt-0.5 size-4 shrink-0 accent-brand-600"
+          <p className="mt-4 rounded-xl bg-slate-50 p-3 text-[11px] leading-relaxed text-slate-500">
+            {QUOTE_DISCLAIMER}
+          </p>
+          <div className="mt-3">
+            <ConsentChecks
+              compact
+              values={consent}
+              onChange={(name, checked) => setConsent((c) => ({ ...c, [name]: checked }))}
             />
-            <span>
-              He leído y acepto la{" "}
-              <Link
-                href="/politica-de-privacidad"
-                target="_blank"
-                className="font-semibold text-brand-700 underline underline-offset-2"
-              >
-                Política de Tratamiento de Datos Personales
-              </Link>{" "}
-              y autorizo el uso de mis datos para gestionar mi solicitud de cotización y contactarme por teléfono,
-              WhatsApp o correo electrónico. (Obligatorio)
-            </span>
-          </label>
+          </div>
 
           {state.status === "error" && (
             <div role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-xs text-red-800 ring-1 ring-red-200">
@@ -126,7 +122,7 @@ export function ChatQuoteCard({
             <button
               type="button"
               onClick={submit}
-              disabled={!consent || state.status === "sending"}
+              disabled={!canSend || state.status === "sending"}
               className="inline-flex items-center gap-2 rounded-full bg-brand-600 px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {state.status === "sending" ? "Enviando…" : "Enviar solicitud"}

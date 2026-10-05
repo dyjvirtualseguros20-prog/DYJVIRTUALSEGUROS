@@ -50,6 +50,11 @@ export async function Footer() {
                 Política de tratamiento de datos
               </Link>
             </li>
+            <li>
+              <Link href="/terminos-y-condiciones" className="hover:text-white">
+                Términos y condiciones
+              </Link>
+            </li>
           </ul>
         </nav>
 
@@ -87,7 +92,9 @@ export async function Footer() {
           <p>
             © {year} {siteConfig.legalName}. Todos los derechos reservados.
           </p>
-          <p className="text-brand-200/60">Las cotizaciones están sujetas a las condiciones de cada aseguradora.</p>
+          <p className="text-brand-200/60">
+            Cotizar no significa contratar: cada cotización está sujeta a las condiciones de la aseguradora.
+          </p>
         </Container>
       </div>
     </footer>

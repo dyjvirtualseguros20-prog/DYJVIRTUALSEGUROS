@@ -71,6 +71,7 @@ export const localStore: QuoteRequestStore = {
         contactedAt: null,
         advisorId: input.advisorId,
         source: input.source,
+        consent: (input.consent ?? {}) as Record<string, unknown>,
       };
       rows.push(record);
       return { id: record.id, reference: record.reference, status: record.status, createdAt: record.createdAt };

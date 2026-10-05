@@ -85,6 +85,8 @@ export interface QuoteRequestRecord {
   advisorId: string | null;
   /** Por dónde llegó la solicitud (columna `source`). Lo fija el servidor. */
   source: RequestSource;
+  /** Autorizaciones registradas (columna `consent`, ver lib/legal.ts → ConsentRecord). */
+  consent: Record<string, unknown>;
 }
 
 /** Origen de una solicitud. La clave se guarda en la base de datos (columna `source`). */

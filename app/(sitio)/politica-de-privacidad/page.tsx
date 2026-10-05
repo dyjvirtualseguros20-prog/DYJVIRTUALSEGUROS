@@ -1,72 +1,46 @@
 import type { Metadata } from "next";
-import type { ReactNode } from "react";
+import Link from "next/link";
 import { siteConfig } from "@/config/site";
+import { CONSENT_TEXT } from "@/lib/legal";
 import { pageMetadata } from "@/lib/seo";
 import { Container } from "@/components/ui/Container";
+import { LEGAL_PROSE, LegalToc, dato, formatLongDate } from "@/components/legal/LegalBits";
 
 export const metadata: Metadata = pageMetadata({
   title: "Política de tratamiento de datos personales",
-  description: `Cómo ${siteConfig.legalName} recopila, usa y protege los datos personales de quienes solicitan una cotización de seguros.`,
+  description: `Cómo ${siteConfig.legalName} recopila, usa, comparte y protege los datos personales de quienes solicitan una cotización de seguros.`,
   path: "/politica-de-privacidad",
 });
 
 /**
- * POLÍTICA DE TRATAMIENTO DE DATOS PERSONALES
+ * POLÍTICA DE TRATAMIENTO DE DATOS PERSONALES (versión en config/site.ts → legal.privacyPolicyVersion)
  * Marco: Ley 1581 de 2012 y Decreto 1377 de 2013 (compilado en el Decreto 1074 de 2015).
  *
  * Los datos de la empresa se leen de config/site.ts (bloques `legal` y `contact`).
- * Mientras un dato esté vacío, la página lo muestra como "PENDIENTE DE COMPLETAR".
- * Recomendación: hacer revisar el texto final por un asesor legal antes de publicar.
+ * Lo que falte aparece como [POR COMPLETAR]: nunca se inventa.
+ * Recomendación: revisión por un abogado colombiano antes de darla por definitiva.
  */
-
-/** Marcador visible para datos que la empresa aún debe suministrar. */
-function Pendiente({ children }: { children: ReactNode }) {
-  return (
-    <mark className="rounded bg-amber-100 px-1.5 py-0.5 font-semibold text-amber-900 ring-1 ring-amber-300">
-      PENDIENTE DE COMPLETAR: {children}
-    </mark>
-  );
-}
-
-/** Muestra el valor configurado o el marcador de pendiente. */
-const dato = (value: string, label: string) => (value ? value : <Pendiente>{label}</Pendiente>);
-
-function formatLongDate(iso: string): string {
-  return new Intl.DateTimeFormat("es-CO", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(
-    new Date(`${iso}T00:00:00Z`),
-  );
-}
-
 const SECTIONS = [
-  ["responsable", "Quién es el responsable de tus datos"],
+  ["responsable", "Responsable del tratamiento"],
   ["datos", "Qué datos recopilamos"],
   ["finalidades", "Para qué usamos tus datos"],
-  ["formularios", "Cómo usamos los datos de los formularios de cotización"],
+  ["autorizaciones", "Tus autorizaciones"],
+  ["aseguradoras", "Cotizaciones y envío de datos a aseguradoras"],
   ["asistente", "Asesor virtual con inteligencia artificial"],
-  ["contacto", "Cómo te contactamos"],
-  ["seguimiento", "Gestión y seguimiento de tu solicitud"],
-  ["terceros", "Con quién compartimos tus datos"],
+  ["contacto", "Cómo te contactamos (incluido WhatsApp)"],
+  ["sensibles", "Datos sensibles y de menores de edad"],
+  ["terceros", "Proveedores tecnológicos y transferencias"],
+  ["cookies", "Cookies y almacenamiento en tu navegador"],
   ["conservacion", "Cuánto tiempo conservamos tus datos"],
   ["seguridad", "Cómo protegemos tus datos"],
   ["derechos", "Tus derechos"],
-  ["ejercer", "Cómo ejercer tus derechos"],
-  ["autorizacion", "Tu autorización"],
-  ["cambios", "Cambios a esta política"],
+  ["ejercer", "Consultas y reclamos: cómo ejercer tus derechos"],
+  ["cambios", "Cambios a esta política y vigencia"],
 ] as const;
 
 export default function PrivacyPage() {
   const { contact, whatsapp, legalName, legal } = siteConfig;
   const privacyEmail = legal.privacyEmail || contact.email;
-
-  // Datos obligatorios de la empresa que aún faltan (se listan en el recuadro amarillo).
-  const required: Array<[string, string]> = [
-    [legal.nit, "NIT"],
-    [legal.address, "Dirección del domicilio principal"],
-    [legal.city, "Ciudad del domicilio"],
-    [privacyEmail, "Correo electrónico para temas de datos personales"],
-    [legal.privacyContact, "Persona o área responsable de atender solicitudes"],
-  ];
-  const pending = required.filter(([value]) => !value).map(([, label]) => label);
 
   return (
     <section className="pt-28 pb-24 sm:pt-36">
@@ -76,73 +50,54 @@ export default function PrivacyPage() {
           Política de tratamiento de datos personales
         </h1>
         <p className="mt-3 text-sm text-slate-500">
-          Última actualización: {formatLongDate(legal.privacyPolicyUpdated)}
+          Versión {legal.privacyPolicyVersion} · Última actualización: {formatLongDate(legal.privacyPolicyUpdated)}
         </p>
 
-        {pending.length > 0 && (
-          <div className="mt-6 rounded-xl bg-amber-50 p-4 text-sm text-amber-900 ring-1 ring-amber-200">
-            <p className="font-bold">Documento en preparación. Faltan estos datos de la empresa:</p>
-            <ul className="mt-2 list-disc space-y-0.5 pl-5">
-              {pending.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* Resumen en lenguaje sencillo */}
         <div className="mt-8 rounded-2xl bg-brand-50 p-6 ring-1 ring-brand-100">
           <h2 className="text-base font-bold text-ink">En resumen</h2>
           <ul className="mt-3 list-disc space-y-1.5 pl-5 text-[15px] leading-relaxed text-slate-700">
-            <li>Usamos tus datos para preparar tu cotización de seguro y contactarte sobre ella.</li>
-            <li>Solo te pedimos la información necesaria para cotizar el seguro que elegiste.</li>
+            <li>Usamos tus datos para gestionar tu solicitud de cotización y contactarte sobre ella.</li>
+            <li>Solo pedimos lo necesario para cotizar el seguro que elegiste. No pedimos datos de salud.</li>
             <li>
-              No vendemos tus datos. Solo los compartimos con quien es necesario para cotizar o contratar tu seguro.
+              Compartimos con aseguradoras solo los datos indispensables, y únicamente con tu autorización. No vendemos
+              tus datos.
             </li>
-            <li>Puedes consultar, corregir o pedir que eliminemos tus datos cuando quieras, escribiéndonos.</li>
-            <li>
-              Si usas el asesor virtual con IA, no guardamos la conversación: solo la solicitud que decidas enviar.
-            </li>
+            <li>Si usas el asesor virtual, no guardamos la conversación: solo la solicitud que decidas enviar.</li>
+            <li>Puedes consultar, corregir o pedir que eliminemos tus datos cuando quieras.</li>
           </ul>
         </div>
 
-        <nav aria-label="Contenido" className="mt-8">
-          <p className="text-sm font-bold text-ink">Contenido</p>
-          <ol className="mt-2 grid list-decimal gap-x-8 gap-y-1 pl-5 text-sm text-brand-700 sm:grid-cols-2">
-            {SECTIONS.map(([id, title]) => (
-              <li key={id}>
-                <a href={`#${id}`} className="hover:underline">
-                  {title}
-                </a>
-              </li>
-            ))}
-          </ol>
-        </nav>
+        <LegalToc sections={SECTIONS} />
 
-        <div className="mt-10 space-y-6 text-[15px] leading-relaxed text-slate-700 [&_h2]:mt-12 [&_h2]:scroll-mt-28 [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-ink [&_h3]:mt-6 [&_h3]:font-bold [&_h3]:text-ink [&_li]:mt-1.5 [&_ul]:list-disc [&_ul]:pl-5">
+        <div className={LEGAL_PROSE}>
           <p>
-            En {legalName} (en adelante, «la agencia», «nosotros») respetamos tu privacidad. Esta política explica, de
-            forma clara, qué datos personales recopilamos a través de este sitio web, para qué los usamos, con quién los
-            compartimos y cómo puedes ejercer tus derechos, de acuerdo con la Ley 1581 de 2012 y sus normas
-            reglamentarias.
+            En {legalName} (en adelante, «la agencia», «nosotros») respetamos tu privacidad. Esta política explica qué
+            datos personales recopilamos a través de este sitio web, para qué los usamos, con quién los compartimos y
+            cómo puedes ejercer tus derechos, de acuerdo con la Ley 1581 de 2012 y sus normas reglamentarias. Complementa
+            los <Link href="/terminos-y-condiciones">Términos y Condiciones</Link> del sitio.
           </p>
 
-          <h2 id="responsable">1. Quién es el responsable de tus datos</h2>
+          <h2 id="responsable">1. Responsable del tratamiento</h2>
           <ul>
             <li>
               <strong>Responsable:</strong> {legalName}
             </li>
             <li>
               <strong>NIT:</strong> {dato(legal.nit, "NIT")}
+              {legal.nitCheckDigit ? `-${legal.nitCheckDigit}` : <>-{dato("", "dígito de verificación")}</>}
+            </li>
+            <li>
+              <strong>Representante legal:</strong> {dato(legal.legalRepresentative, "nombre del representante legal")}
             </li>
             <li>
               <strong>Domicilio:</strong> {dato(legal.address, "dirección")}, {dato(legal.city, "ciudad")}, Colombia
+              (no es una oficina abierta al público)
             </li>
             <li>
               <strong>Teléfono y WhatsApp:</strong> {whatsapp.display}
             </li>
             <li>
-              <strong>Correo electrónico:</strong> {dato(privacyEmail, "correo para datos personales")}
+              <strong>Correo para temas de datos personales:</strong> {dato(privacyEmail, "correo para datos personales")}
             </li>
           </ul>
           <p>
@@ -152,21 +107,20 @@ export default function PrivacyPage() {
 
           <h2 id="datos">2. Qué datos recopilamos</h2>
           <p>
-            Solo recopilamos los datos que tú mismo nos das al llenar un formulario de cotización o al enviar una
-            solicitud a través del asesor virtual (punto 5):
+            Solo recopilamos los datos que tú nos das al enviar una solicitud de cotización (formulario o asesor
+            virtual) o al escribirnos:
           </p>
-          <h3>Datos de identificación y contacto</h3>
+          <h3>Identificación y contacto</h3>
           <ul>
-            <li>Nombre completo.</li>
-            <li>Número de identificación (cédula) o NIT, cuando el seguro lo requiere.</li>
-            <li>Teléfono / WhatsApp y correo electrónico.</li>
-            <li>Ciudad.</li>
+            <li>Nombre completo y número de identificación (cédula) o NIT, cuando aplica.</li>
+            <li>Celular / WhatsApp, correo electrónico (opcional en el asesor virtual) y ciudad.</li>
             <li>Fecha de nacimiento, en los seguros de vida y salud.</li>
           </ul>
           <h3>Datos del seguro que quieres cotizar</h3>
           <ul>
             <li>
-              <strong>Vehículos:</strong> placa, marca, modelo o línea, año y tipo de vehículo.
+              <strong>Vehículos:</strong> placa, marca, línea, año, tipo de vehículo, uso (particular o comercial) y
+              cobertura de interés.
             </li>
             <li>
               <strong>Vida:</strong> valor aproximado de cobertura deseada.
@@ -179,287 +133,288 @@ export default function PrivacyPage() {
               <strong>Salud:</strong> tipo de plan (individual o familiar) y número de personas.
             </li>
             <li>
-              <strong>Viajes:</strong> destino, fechas de salida y regreso y número de viajeros.
+              <strong>Viajes:</strong> destino, fechas y número de viajeros.
             </li>
             <li>
-              <strong>Empresas:</strong> razón social, NIT, número de empleados y tipo de seguro de interés, además de
-              los datos de la persona de contacto.
+              <strong>Empresas:</strong> razón social, NIT, número de empleados y seguro de interés, además de los datos
+              de la persona de contacto.
             </li>
           </ul>
           <h3>Datos de gestión de tu solicitud</h3>
           <p>
-            Fecha de la solicitud, número de referencia, estado (por ejemplo, «En revisión» o «Cotizado»), notas
-            internas del asesor, valor de la cotización y fecha en que te contactamos.
+            Número de referencia, fecha, estado, asesor asignado, origen (formulario o asesor virtual), notas internas,
+            valor de la cotización, fecha de contacto y el registro de tus autorizaciones (punto 4).
           </p>
-          <h3>Datos que no pedimos</h3>
+          <h3>Datos técnicos</h3>
           <p>
-            En este sitio <strong>no solicitamos datos sensibles</strong>, como información sobre tu estado de salud,
-            origen étnico, creencias o datos biométricos. Si para algún seguro (por ejemplo, vida o salud) la
-            aseguradora llegara a requerir información de este tipo, te la pediremos por separado, te explicaremos para
-            qué se usará y solo la trataremos con tu autorización expresa. Responder preguntas sobre datos sensibles es
-            siempre opcional.
-          </p>
-          <p>
-            Este sitio no está dirigido a menores de edad. Para solicitar una cotización debes ser mayor de 18 años.
+            Para que el sitio funcione y sea seguro, nuestros proveedores generan registros técnicos (por ejemplo,
+            dirección IP, fecha y página visitada) y usamos una cookie para recordar el asesor asignado (punto 10). No
+            usamos estos datos para crear perfiles publicitarios.
           </p>
 
           <h2 id="finalidades">3. Para qué usamos tus datos</h2>
           <ul>
-            <li>Recibir y registrar tu solicitud de cotización.</li>
-            <li>Analizar tus necesidades y preparar una o varias alternativas de seguro.</li>
-            <li>Consultar opciones y precios con aseguradoras para el seguro que solicitaste.</li>
-            <li>Contactarte para resolver dudas, completar información y presentarte las opciones.</li>
-            <li>Acompañarte en el proceso de contratación, si decides contratar.</li>
-            <li>Hacer seguimiento a tu solicitud y llevar un registro interno de su estado.</li>
-            <li>Atender tus consultas, reclamos y solicitudes sobre tus datos personales.</li>
-            <li>Cumplir obligaciones legales y atender requerimientos de autoridades competentes.</li>
-          </ul>
-          <p>
-            No usaremos tus datos para fines distintos a los descritos aquí sin informarte y, cuando la ley lo exija,
-            sin pedirte una nueva autorización.
-          </p>
-
-          <h2 id="formularios">4. Cómo usamos los datos de los formularios de cotización</h2>
-          <p>Cuando envías un formulario en este sitio:</p>
-          <ul>
-            <li>Revisamos que los datos estén completos y los guardamos en nuestra base de datos.</li>
-            <li>Te asignamos un número de referencia (por ejemplo, «SOL-XXXXXX») para identificar tu solicitud.</li>
-            <li>Un asesor de la agencia revisa tu solicitud y prepara la cotización de forma personalizada.</li>
+            <li>Recibir, registrar y dar seguimiento a tu solicitud de cotización.</li>
+            <li>Analizar tu necesidad y preparar una o varias alternativas de seguro.</li>
             <li>
-              Si es necesario, compartimos con una o varias aseguradoras los datos indispensables para cotizar (por
-              ejemplo, los datos del vehículo y tu identificación).
+              Solicitar cotizaciones a las aseguradoras, compartiendo solo los datos indispensables y con tu
+              autorización (punto 5).
             </li>
-            <li>Te contactamos con las alternativas encontradas.</li>
+            <li>Contactarte para resolver dudas, completar información y presentarte las alternativas.</li>
+            <li>Acompañarte en la contratación, si decides contratar, y después de ella.</li>
+            <li>Atender tus consultas, reclamos y solicitudes sobre tus datos.</li>
+            <li>Proteger el sitio contra usos indebidos y cumplir obligaciones legales.</li>
           </ul>
-          <p>
-            Enviar una solicitud de cotización no te obliga a contratar ningún seguro. Los precios y condiciones finales
-            dependen de cada aseguradora.
-          </p>
+          <p>No usaremos tus datos para fines distintos sin informarte y, cuando la ley lo exija, sin tu autorización.</p>
 
-          <h2 id="asistente">5. Asesor virtual con inteligencia artificial</h2>
-          <p>
-            Este sitio puede ofrecer un <strong>asesor virtual</strong>: un chat automático basado en inteligencia
-            artificial que te ayuda a:
-          </p>
-          <ul>
-            <li>Responder preguntas generales sobre seguros y sobre nuestros servicios.</li>
-            <li>Orientarte e identificar qué tipo de seguro se ajusta a tu necesidad.</li>
-            <li>Recopilar, si tú quieres, los datos necesarios para una solicitud de cotización.</li>
-          </ul>
-          <p>Así funciona y así tratamos tu información:</p>
+          <h2 id="autorizaciones">4. Tus autorizaciones</h2>
+          <p>Antes de enviar una solicitud te pedimos tres autorizaciones separadas, para que sepas qué aceptas:</p>
           <ul>
             <li>
-              Los mensajes que escribes se procesan con <strong>Cloudflare Workers AI</strong>, el servicio de
-              inteligencia artificial de Cloudflare, Inc. (empresa con sede en Estados Unidos), que actúa como encargado
-              del tratamiento. Los modelos se ejecutan en su red de servidores, que puede estar fuera de Colombia, por
-              lo que el contenido de tus mensajes puede transmitirse al exterior solo para generar las respuestas, de
-              acuerdo con las políticas de privacidad de Cloudflare.
+              <strong>A. Política y términos (obligatoria):</strong> «{CONSENT_TEXT.privacyAccepted.before}{" "}
+              {CONSENT_TEXT.privacyAccepted.policy} {CONSENT_TEXT.privacyAccepted.middle}{" "}
+              {CONSENT_TEXT.privacyAccepted.terms}».
             </li>
             <li>
-              <strong>No guardamos las conversaciones</strong> en nuestra base de datos ni en tu navegador. La
-              conversación desaparece al cerrar el chat o la página.
+              <strong>B. Gestión de tu cotización (obligatoria):</strong> «{CONSENT_TEXT.dataConsent.text}» Sin esta
+              autorización no podemos atender tu solicitud.
             </li>
             <li>
-              Solo si decides enviar una solicitud, el asesor virtual te muestra un resumen; tú lo revisas, aceptas esta
-              política y pulsas «Enviar solicitud». En ese momento guardamos los mismos datos de un formulario de
-              cotización (punto 2), las observaciones que hayas querido agregar y una marca que indica que la solicitud
-              llegó por el asesor virtual. Desde ahí, se trata igual que cualquier otra solicitud (punto 4).
+              <strong>C. Envío a aseguradoras (opcional):</strong> «{CONSENT_TEXT.insurerConsent.text}» Si no la marcas,
+              un asesor te pedirá autorización antes de compartir cualquier dato con una aseguradora.
+            </li>
+          </ul>
+          <p>
+            Guardamos con tu solicitud un <strong>registro de tus autorizaciones</strong>: cuáles diste, la fecha y la
+            hora, la versión de esta política y de los términos, y el origen de la solicitud. Ese registro sirve como
+            prueba de tu autorización. Dar tus autorizaciones es voluntario y puedes revocarlas en cualquier momento
+            (punto 14).
+          </p>
+
+          <h2 id="aseguradoras">5. Cotizaciones y envío de datos a aseguradoras</h2>
+          <ul>
+            <li>
+              Para cotizar, un asesor consulta a una o varias aseguradoras. Solo compartimos los{" "}
+              <strong>datos indispensables</strong> para el seguro solicitado (por ejemplo, identificación, ciudad,
+              contacto y datos del vehículo) y solo si diste la autorización C o la das después a tu asesor.
             </li>
             <li>
-              El asesor virtual es automático y puede equivocarse. No da precios ni condiciones definitivas: un asesor
-              de la agencia revisa cada solicitud y confirma la información.
+              En el futuro algunas cotizaciones podrán hacerse automáticamente mediante conexiones (API) con las
+              aseguradoras. Se aplicarán las mismas reglas: tu autorización previa, solo los datos necesarios, envío
+              desde nuestros servidores y un registro de qué tipo de datos se enviaron, a qué aseguradora y cuándo. El
+              asesor virtual nunca decide por sí solo enviar tus datos a una aseguradora.
             </li>
             <li>
-              No compartas en el chat datos sensibles (por ejemplo, información de salud), contraseñas ni datos
-              bancarios o de tarjetas.
+              Cada aseguradora trata los datos que recibe como responsable independiente, según su propia política de
+              tratamiento de datos.
             </li>
             <li>
-              Usar el asesor virtual es opcional: también puedes cotizar con los formularios o escribirnos por WhatsApp.
+              Enviar una solicitud no te obliga a contratar. Cotizar no significa contratar: la emisión de una póliza
+              depende de la aseguradora.
             </li>
           </ul>
 
-          <h2 id="contacto">6. Cómo te contactamos</h2>
+          <h2 id="asistente">6. Asesor virtual con inteligencia artificial</h2>
+          <ul>
+            <li>
+              El asesor virtual es un chat automático con inteligencia artificial (no una persona) que responde
+              preguntas generales, te orienta y, si quieres, prepara tu solicitud.
+            </li>
+            <li>
+              Tus mensajes se procesan con <strong>Cloudflare Workers AI</strong> (Cloudflare, Inc., Estados Unidos),
+              que actúa como encargado del tratamiento. Los modelos se ejecutan en su red de servidores, que puede estar
+              fuera de Colombia, solo para generar las respuestas y según las políticas de Cloudflare.
+            </li>
+            <li>
+              <strong>No guardamos las conversaciones</strong> en nuestra base de datos ni en tu navegador.
+            </li>
+            <li>
+              Solo si confirmas el resumen y das tus autorizaciones, guardamos los datos de la solicitud (punto 2) y una
+              marca de que llegó por el asesor virtual.
+            </li>
+            <li>
+              El asesor virtual puede equivocarse, no da precios ni confirma aprobaciones: un asesor de la agencia revisa
+              cada solicitud.
+            </li>
+          </ul>
+
+          <h2 id="contacto">7. Cómo te contactamos (incluido WhatsApp)</h2>
           <p>
-            Usaremos los datos de contacto que nos diste para comunicarnos contigo <strong>únicamente</strong> sobre tu
-            solicitud de cotización y el seguro relacionado, por estos medios:
+            Usaremos tus datos de contacto <strong>únicamente</strong> para comunicarnos sobre tu solicitud y el seguro
+            relacionado: por llamada, por WhatsApp (desde {whatsapp.display} o el número de tu asesor) o por correo
+            electrónico. WhatsApp es un servicio de Meta, sujeto a sus propias políticas. Si prefieres que no te
+            contactemos por algún medio, o que dejemos de hacerlo, solo tienes que decírnoslo.
+          </p>
+
+          <h2 id="sensibles">8. Datos sensibles y de menores de edad</h2>
+          <ul>
+            <li>
+              En este sitio <strong>no pedimos datos sensibles</strong> (como información de salud, origen étnico,
+              creencias o datos biométricos). La fecha de nacimiento que pedimos en vida y salud no es un dato sensible.
+            </li>
+            <li>
+              Si escribes datos de salud en el chat, el sistema está diseñado para no guardarlos en tu solicitud. Por
+              favor, no los compartas por ese medio.
+            </li>
+            <li>
+              Si una aseguradora llegara a requerir información sensible (por ejemplo, una declaración de salud para un
+              seguro de vida), te la pediremos por separado, te explicaremos para qué se usará y solo la trataremos con
+              tu autorización expresa. Responder preguntas sobre datos sensibles es facultativo.
+            </li>
+            <li>
+              Este sitio no está dirigido a menores de edad. Para enviar una solicitud debes ser mayor de 18 años. Si en
+              un seguro familiar se incluyen menores, sus datos se tratarán en su interés superior y con la autorización
+              de su representante legal.
+            </li>
+          </ul>
+
+          <h2 id="terceros">9. Proveedores tecnológicos y transferencias</h2>
+          <p>
+            <strong>No vendemos ni alquilamos tus datos.</strong> Para operar usamos proveedores que tratan los datos
+            por cuenta nuestra (encargados), con medidas de seguridad y confidencialidad:
           </p>
           <ul>
             <li>
-              <strong>Llamada telefónica</strong> al número que nos diste.
+              <strong>Supabase:</strong> base de datos de solicitudes y acceso de los asesores. Servidores en São Paulo,
+              Brasil.
             </li>
             <li>
-              <strong>WhatsApp</strong>, desde nuestro número {whatsapp.display}.
+              <strong>{legal.hostingProvider || "Proveedor de alojamiento"}:</strong> alojamiento y publicación del
+              sitio, protección contra ataques y asesor virtual (Workers AI). Red global de servidores, con sede en
+              Estados Unidos.
             </li>
             <li>
-              <strong>Correo electrónico</strong>, a la dirección que nos diste.
+              <strong>Vercel Inc.:</strong> copia de respaldo del sitio. Estados Unidos.
+            </li>
+            <li>
+              <strong>Meta (WhatsApp):</strong> cuando nos escribes o te escribimos por ese medio.
             </li>
           </ul>
           <p>
-            Si prefieres que no te contactemos por alguno de estos medios, o que dejemos de contactarte, solo tienes que
-            decírnoslo por cualquiera de nuestros canales.
+            Por esto, tus datos pueden almacenarse o procesarse fuera de Colombia. Al darnos tus autorizaciones
+            aceptas esta transmisión para las finalidades de esta política. También compartimos datos con{" "}
+            <strong>aseguradoras</strong> (punto 5) y con <strong>autoridades</strong> cuando la ley o una orden
+            competente lo exijan.
           </p>
 
-          <h2 id="seguimiento">7. Gestión y seguimiento de tu solicitud</h2>
-          <p>
-            Para darte un buen servicio, registramos el avance de tu solicitud: su estado, las notas del asesor, el
-            valor de la cotización y la fecha de contacto. A esta información solo acceden los asesores autorizados de
-            la agencia, mediante un usuario y contraseña personales.
-          </p>
-
-          <h2 id="terceros">8. Con quién compartimos tus datos</h2>
-          <p>
-            <strong>No vendemos ni alquilamos tus datos personales.</strong> Solo los compartimos cuando es necesario
-            para atender tu solicitud:
-          </p>
+          <h2 id="cookies">10. Cookies y almacenamiento en tu navegador</h2>
           <ul>
             <li>
-              <strong>Aseguradoras:</strong> los datos indispensables para cotizar y, si decides contratar, para emitir
-              la póliza. Cada aseguradora trata esos datos según su propia política de tratamiento de datos.
+              <strong>Cookie «asesor»:</strong> si entras por el enlace de un asesor, recuerda durante 30 días a qué
+              asesor se asigna tu solicitud. Es necesaria para esa función.
             </li>
             <li>
-              <strong>Proveedores tecnológicos</strong> que nos prestan servicios y actúan por cuenta nuestra
-              (encargados del tratamiento), con quienes exigimos medidas de seguridad y confidencialidad:
-              <ul>
-                <li>
-                  Supabase: almacenamiento de la base de datos de solicitudes y acceso de los asesores. Sus servidores
-                  están ubicados en São Paulo, Brasil, por lo que tus datos se transmiten fuera de Colombia para este
-                  fin.
-                </li>
-                <li>
-                  {legal.hostingProvider
-                    ? `${legal.hostingProvider}: alojamiento y publicación de este sitio web.`
-                    : "El proveedor de alojamiento donde se publica este sitio web."}
-                </li>
-                <li>WhatsApp (Meta), cuando la comunicación se realiza por ese medio.</li>
-                <li>
-                  Cloudflare, Inc. (Workers AI): procesamiento de los mensajes del asesor virtual con inteligencia
-                  artificial (punto 5). Su red de servidores puede estar fuera de Colombia.
-                </li>
-              </ul>
+              <strong>Aviso del asesor virtual:</strong> tu navegador recuerda que ya viste el mensaje de bienvenida,
+              para no repetirlo.
             </li>
             <li>
-              <strong>Autoridades</strong>, cuando una ley o una orden de autoridad competente nos lo exija.
+              <strong>Sesión de asesores:</strong> el panel interno usa cookies de inicio de sesión, solo para los
+              asesores autorizados.
             </li>
           </ul>
+          <p>No usamos cookies de publicidad. Puedes borrar las cookies desde la configuración de tu navegador.</p>
 
-          <h2 id="conservacion">9. Cuánto tiempo conservamos tus datos</h2>
-          <p>Conservamos tus datos solo durante el tiempo necesario para cumplir las finalidades de esta política:</p>
+          <h2 id="conservacion">11. Cuánto tiempo conservamos tus datos</h2>
           <ul>
             <li>
               <strong>Si no contratas un seguro:</strong>{" "}
               {legal.retentionPeriod
-                ? `conservamos tu solicitud durante ${legal.retentionPeriod} desde su última actualización, para atender consultas o retomar la cotización. Después la eliminamos o la anonimizamos.`
+                ? `conservamos tu solicitud durante ${legal.retentionPeriod} desde su última actualización. Después la eliminamos o la anonimizamos.`
                 : "conservamos tu solicitud solo mientras sea útil para atender tus consultas o retomar la cotización. Cuando deja de serlo, o cuando nos pidas eliminarla, la eliminamos o la anonimizamos."}
             </li>
             <li>
-              <strong>Si contratas un seguro:</strong> conservamos la información mientras dure la relación y por el
-              tiempo adicional que exijan las normas aplicables a la actividad de intermediación de seguros.
+              <strong>Si contratas un seguro:</strong> mientras dure la relación y por el tiempo adicional que exijan las
+              normas aplicables a la intermediación de seguros.
             </li>
             <li>
-              <strong>Si nos pides eliminar tus datos:</strong> lo haremos, salvo que exista un deber legal o
-              contractual de conservarlos.
+              <strong>Registro de autorizaciones:</strong> mientras sea necesario para demostrar que nos diste tu
+              autorización.
+            </li>
+            <li>
+              <strong>Si pides eliminar tus datos:</strong> lo haremos, salvo que exista un deber legal o contractual de
+              conservarlos.
             </li>
           </ul>
 
-          <h2 id="seguridad">10. Cómo protegemos tus datos</h2>
-          <p>Aplicamos medidas técnicas y administrativas razonables para proteger tu información, entre ellas:</p>
+          <h2 id="seguridad">12. Cómo protegemos tus datos</h2>
           <ul>
             <li>Acceso al panel de solicitudes solo para asesores autorizados, con usuario y contraseña personales.</li>
-            <li>
-              Reglas en la base de datos que impiden que una persona sin autorización pueda ver o modificar solicitudes.
-            </li>
-            <li>Conexiones cifradas entre tu navegador, nuestro sitio y la base de datos.</li>
-            <li>Los datos del formulario no se guardan en tu navegador ni en tu dispositivo.</li>
-            <li>Las conversaciones con el asesor virtual no se almacenan en nuestra base de datos.</li>
-            <li>
-              Controles para limitar envíos masivos o automatizados de formularios y de mensajes al asesor virtual.
-            </li>
+            <li>Reglas en la base de datos que impiden ver o modificar solicitudes sin autorización.</li>
+            <li>Conexiones cifradas (HTTPS) entre tu navegador, el sitio y la base de datos.</li>
+            <li>Las claves y credenciales de los sistemas están solo en los servidores, nunca en tu navegador.</li>
+            <li>Los datos de los formularios y las conversaciones del asesor virtual no se guardan en tu navegador.</li>
+            <li>Límites contra envíos masivos o automatizados de formularios y de mensajes al asesor virtual.</li>
           </ul>
           <p>
-            Ningún sistema es completamente infalible. Si llegáramos a detectar un incidente que afecte tus datos,
-            tomaremos las medidas necesarias y te informaremos cuando la ley así lo exija.
+            Ningún sistema es infalible. Si detectamos un incidente que afecte tus datos, tomaremos las medidas
+            necesarias y te informaremos, y a la autoridad, cuando la ley lo exija.
           </p>
 
-          <h2 id="derechos">11. Tus derechos</h2>
-          <p>Como titular de tus datos personales, tienes derecho a:</p>
+          <h2 id="derechos">13. Tus derechos</h2>
+          <p>Como titular de tus datos tienes derecho a:</p>
           <ul>
             <li>
-              <strong>Conocer</strong> los datos que tenemos sobre ti y <strong>consultarlos</strong> de forma gratuita.
-            </li>
-            <li>
-              <strong>Actualizar y corregir</strong> tus datos si están incompletos, son inexactos o están
-              desactualizados.
+              <strong>Conocer, actualizar y corregir</strong> tus datos.
             </li>
             <li>
               <strong>Pedir prueba</strong> de la autorización que nos diste.
             </li>
             <li>
-              <strong>Ser informado</strong> sobre el uso que les hemos dado a tus datos.
+              <strong>Ser informado</strong> sobre el uso que les damos a tus datos.
             </li>
             <li>
-              <strong>Revocar la autorización y pedir la eliminación</strong> de tus datos, cuando no exista un deber
-              legal o contractual que nos obligue a conservarlos.
+              <strong>Revocar la autorización y pedir la supresión</strong> de tus datos, cuando no exista un deber
+              legal o contractual de conservarlos.
             </li>
             <li>
-              <strong>Presentar quejas</strong> ante la Superintendencia de Industria y Comercio (SIC), después de haber
-              hecho tu consulta o reclamo ante nosotros.
+              <strong>Acceder gratuitamente</strong> a tus datos.
+            </li>
+            <li>
+              <strong>Presentar quejas</strong> ante la Superintendencia de Industria y Comercio (SIC), después de agotar
+              la consulta o el reclamo ante nosotros.
             </li>
           </ul>
 
-          <h2 id="ejercer">12. Cómo ejercer tus derechos</h2>
-          <p>Puedes enviarnos tu consulta, solicitud de corrección o eliminación, o reclamo por estos canales:</p>
+          <h2 id="ejercer">14. Consultas y reclamos: cómo ejercer tus derechos</h2>
           <ul>
             <li>
-              <strong>WhatsApp:</strong> {whatsapp.display}
+              <strong>Correo electrónico:</strong> {dato(privacyEmail, "correo para datos personales")}
             </li>
             <li>
-              <strong>Correo electrónico:</strong> {dato(privacyEmail, "correo para datos personales")}
+              <strong>WhatsApp:</strong> {whatsapp.display}
             </li>
             <li>
               <strong>Responsable de atender tu solicitud:</strong>{" "}
               {dato(legal.privacyContact, "persona o área responsable")}
             </li>
           </ul>
-          <p>Para atenderte más rápido, incluye en tu mensaje:</p>
-          <ul>
-            <li>Tu nombre completo y número de identificación.</li>
-            <li>La referencia de tu solicitud (por ejemplo, «SOL-XXXXXX»), si la tienes.</li>
-            <li>Qué quieres hacer: consultar, actualizar, corregir o eliminar tus datos, o revocar la autorización.</li>
-            <li>Un medio para responderte.</li>
-          </ul>
-          <p>Podremos pedirte información adicional para verificar tu identidad antes de responder.</p>
-          <h3>Tiempos de respuesta</h3>
+          <p>
+            Incluye tu nombre completo e identificación, la referencia de tu solicitud si la tienes («SOL-XXXXXX»), lo
+            que quieres hacer y un medio para responderte. Podremos pedirte información adicional para verificar tu
+            identidad.
+          </p>
           <ul>
             <li>
-              <strong>Consultas:</strong> máximo 10 días hábiles. Si no es posible, te avisaremos y responderemos a más
-              tardar 5 días hábiles después.
+              <strong>Consultas:</strong> respondemos en máximo 10 días hábiles. Si no es posible, te avisaremos el motivo
+              y responderemos a más tardar 5 días hábiles después.
             </li>
             <li>
-              <strong>Reclamos</strong> (corrección, actualización, eliminación o revocatoria): máximo 15 días hábiles.
-              Si no es posible, te avisaremos y responderemos a más tardar 8 días hábiles después.
+              <strong>Reclamos</strong> (corrección, actualización, supresión o revocatoria): respondemos en máximo 15
+              días hábiles. Si el reclamo está incompleto, te pediremos completarlo dentro de los 5 días siguientes; si
+              no lo haces en 2 meses, se entenderá desistido. Si no podemos responder a tiempo, te avisaremos el motivo y
+              responderemos a más tardar 8 días hábiles después.
             </li>
           </ul>
 
-          <h2 id="autorizacion">13. Tu autorización</h2>
+          <h2 id="cambios">15. Cambios a esta política y vigencia</h2>
           <p>
-            Antes de enviar un formulario de cotización (o la solicitud que prepara el asesor virtual) debes marcar la
-            casilla «He leído y acepto la Política de Tratamiento de Datos Personales». Al marcarla, nos autorizas de
-            forma previa, expresa e informada a tratar tus datos según esta política. Si no la marcas, el formulario no
-            se envía.
+            Podemos actualizar esta política. Publicaremos la nueva versión en esta página con su número y fecha y, si
+            el cambio es importante o la ley lo exige, te pediremos una nueva autorización. Cada solicitud guarda la
+            versión de la política vigente cuando la enviaste.
           </p>
           <p>
-            Dar tu autorización es voluntario, pero sin ella no podemos preparar tu cotización. Puedes revocarla en
-            cualquier momento por los canales del punto 12. Guardamos la fecha en que nos diste la autorización como
-            prueba de ella.
-          </p>
-
-          <h2 id="cambios">14. Cambios a esta política</h2>
-          <p>
-            Podemos actualizar esta política. Cuando hagamos cambios importantes, publicaremos la nueva versión en esta
-            página con su fecha de actualización y, si la ley lo exige, te pediremos una nueva autorización.
-          </p>
-          <p>
-            <strong>Vigencia:</strong> esta política rige desde el {formatLongDate(legal.privacyPolicyUpdated)}.
+            <strong>Versión {legal.privacyPolicyVersion}</strong>, vigente desde el{" "}
+            {formatLongDate(legal.privacyPolicyUpdated)}.
           </p>
         </div>
       </Container>

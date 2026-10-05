@@ -473,3 +473,26 @@ export function vehicleTypeFromLine(userText: string): string | undefined {
     .map(([type]) => type);
   return matches.length === 1 ? matches[0] : undefined;
 }
+
+/** ¿El texto menciona datos de salud? (dato sensible: no se guarda en la solicitud). */
+const HEALTH =
+  /(diabet|cancer|\bvih\b|\bsida\b|enfermedad|diagnostic|tratamiento medico|medicament|embaraz|discapacidad|hipertension|cirugia|psiquiatr|depresion|epilep|hospitaliz|condicion de salud|preexisten|transplant|trasplant|dialisis|quimioterap)/;
+export const containsHealthData = (text: string) => HEALTH.test(fold(text));
+
+/**
+ * Afirmaciones que el asistente nunca puede hacer: aprobación o emisión de pólizas, garantías,
+ * "la mejor aseguradora" o precios que el cliente no escribió.
+ */
+const FORBIDDEN_CLAIMS =
+  /(poliza\s+(ya\s+)?(esta\s+|ha\s+sido\s+|quedo\s+|fue\s+)?(aprobada|emitida|activa|expedida))|(ya\s+(estas|quedaste|quedas)\s+asegurad)|(te\s+garantiz)|(garantizad[oa])|(la\s+mejor\s+aseguradora)|(aseguradora\s+mas\s+barata)/;
+
+export function unsafeClaim(reply: string, userText: string): boolean {
+  if (FORBIDDEN_CLAIMS.test(fold(reply))) return true;
+  // Precios: cualquier cifra en pesos debe venir de lo que escribió el cliente.
+  const prices = reply.match(/\$\s?\d[\d.,]*|\d[\d.,]*\s*(pesos|cop|millones)/gi) ?? [];
+  const userDigits = userText.replace(/\D/g, "");
+  return prices.some((p) => {
+    const d = p.replace(/\D/g, "").replace(/0+$/, "");
+    return d.length > 0 && !userDigits.includes(d);
+  });
+}

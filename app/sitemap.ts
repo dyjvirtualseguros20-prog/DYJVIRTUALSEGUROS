@@ -21,5 +21,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "yearly",
       priority: 0.2,
     },
+    {
+      url: `${siteUrl}/terminos-y-condiciones`,
+      lastModified: new Date(siteConfig.legal.termsUpdated),
+      changeFrequency: "yearly",
+      priority: 0.2,
+    },
   ];
 }

@@ -30,6 +30,8 @@ import {
   looksLikeName,
   obviousName,
   obviousNumbers,
+  containsHealthData,
+  unsafeClaim,
   obviousOptions,
   trimPunctuation,
   vehicleTypeFromLine,
@@ -140,14 +142,28 @@ export async function replyToVisitor(
   const coverage = groundedText(output.cobertura, userText) || extras.coverage;
   const useType = groundedText(output.uso, userText) || extras.useType;
 
+  // Datos de salud (sensibles): nunca se guardan en la solicitud.
+  const healthMentioned = containsHealthData(lastMessage);
+  const observaciones = containsHealthData(output.observaciones) ? "" : output.observaciones;
+
   const { lead: next, rejected } = mergeLead(lead, {
     insuranceType: output.insuranceType,
     datos,
-    observaciones: output.observaciones,
+    observaciones,
     coverage,
     useType,
   });
-  const reply = tidyReply(output.reply) || "¿Me cuentas un poco más para poder ayudarte?";
+  let reply = tidyReply(output.reply) || "¿Me cuentas un poco más para poder ayudarte?";
+  // Nunca: pólizas aprobadas o emitidas, garantías, "la mejor aseguradora" ni precios inventados.
+  if (unsafeClaim(reply, userText)) {
+    reply =
+      "Te cuento con transparencia: cotizar no significa contratar. Los precios, la aprobación y la emisión de la póliza solo los confirma la aseguradora, y un asesor te los informará.";
+  }
+  // Aviso que se agrega al final de cualquier respuesta si el cliente mencionó datos de salud.
+  const healthNote = healthMentioned
+    ? "🔒 Por tu privacidad, no guardo información de salud en tu solicitud; si la aseguradora la necesita, un asesor te la pedirá por separado y con tu autorización."
+    : "";
+  if (healthNote) reply = `${reply} ${healthNote}`;
 
   // ── Accidente o pide hablar con una persona → botón de WhatsApp (asesor del enlace o el oficial) ──
   if (output.intent === "accidente") return { lead: next, ...accidentReply(reply) };
@@ -190,7 +206,15 @@ export async function replyToVisitor(
     const corrections = Object.entries(rejected).map(([name, message]) => `${labels.get(name) ?? name}: ${message}`);
     // Si el cliente hizo una pregunta, se responde completa antes de la lista; si no, solo una confirmación.
     const leadIn = output.intent === "informacion" ? withoutQuestions(reply) : acknowledgment(reply);
-    return { lead: next, reply: groupedRequest(leadIn, next, missing, corrections) };
+    const grouped = groupedRequest(leadIn, next, missing, corrections);
+    return {
+      lead: next,
+      reply: healthNote
+        ? `${grouped}
+
+${healthNote}`
+        : grouped,
+    };
   }
 
   return { lead: next, reply };

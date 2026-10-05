@@ -1,12 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { QUOTE_FORMS, emptyValues } from "@/lib/forms/quoteForms";
 import { validateQuoteForm } from "@/lib/validation/quoteSchemas";
 import type { InsuranceType } from "@/types";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
+import { ConsentChecks } from "@/components/legal/ConsentChecks";
 import { FormField } from "./FormField";
 
 export type FormValues = Record<string, string | boolean>;
@@ -114,34 +114,16 @@ export function QuoteForm({
         </fieldset>
       ))}
 
-      {/* Autorización de tratamiento de datos (Ley 1581 de 2012). */}
-      <div>
-        <label className="flex cursor-pointer items-start gap-3 rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
-          <input
-            id="campo-dataConsent"
-            type="checkbox"
-            name="dataConsent"
-            checked={values.dataConsent === true}
-            onChange={(e) => handleChange("dataConsent", e.target.checked)}
-            aria-invalid={errors.dataConsent ? true : undefined}
-            aria-describedby={errors.dataConsent ? "campo-dataConsent-error" : undefined}
-            className="mt-0.5 size-5 shrink-0 cursor-pointer rounded accent-brand-600"
-          />
-          <span>
-            He leído y acepto la{" "}
-            <Link href="/politica-de-privacidad" target="_blank" className="font-semibold text-brand-700 underline">
-              Política de Tratamiento de Datos Personales
-            </Link>{" "}
-            y autorizo el uso de mis datos para gestionar mi solicitud de cotización y contactarme por teléfono,
-            WhatsApp o correo electrónico. <span className="font-semibold text-ink">(Obligatorio)</span>
-          </span>
-        </label>
-        {errors.dataConsent && (
-          <p id="campo-dataConsent-error" role="alert" className="mt-2 text-sm font-medium text-red-600">
-            {errors.dataConsent}
-          </p>
-        )}
-      </div>
+      {/* Autorizaciones de tratamiento de datos (Ley 1581 de 2012): A y B obligatorias, C opcional. */}
+      <ConsentChecks
+        values={{
+          privacyAccepted: values.privacyAccepted === true,
+          dataConsent: values.dataConsent === true,
+          insurerConsent: values.insurerConsent === true,
+        }}
+        onChange={handleChange}
+        errors={{ privacyAccepted: errors.privacyAccepted, dataConsent: errors.dataConsent }}
+      />
 
       {(formError || (submitted && errorCount > 0)) && (
         <div

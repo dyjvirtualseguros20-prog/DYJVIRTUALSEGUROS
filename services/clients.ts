@@ -11,7 +11,11 @@ import { ServiceError } from "./config";
 
 /** Separa los datos de contacto de los detalles específicos de cada seguro. */
 export function toQuoteRequest(insuranceType: InsuranceType, form: AnyQuoteForm | AssistantQuoteForm): QuoteRequest {
-  const { fullName, phone, email, dataConsent, ...details } = form;
+  const { fullName, phone, email, dataConsent, ...rest } = form;
+  // Las autorizaciones no son datos del seguro: se registran aparte (quote_requests.consent).
+  const details = Object.fromEntries(
+    Object.entries(rest).filter(([key]) => key !== "privacyAccepted" && key !== "insurerConsent"),
+  );
   return {
     insuranceType,
     contact: { fullName, phone, email },

@@ -6,6 +6,7 @@ import type {
   RequestSource,
   RequestStatus,
 } from "@/types";
+import type { ConsentRecord } from "@/lib/legal";
 
 /** Datos de una solicitud nueva (antes de guardarse). */
 export interface NewQuoteRequest {
@@ -22,6 +23,8 @@ export interface NewQuoteRequest {
   advisorId: string | null;
   /** Origen: formulario o asistente virtual. */
   source: RequestSource;
+  /** Autorizaciones del cliente (fecha, versiones, tipo). */
+  consent: ConsentRecord | null;
 }
 
 export interface CreatedQuoteRequest {

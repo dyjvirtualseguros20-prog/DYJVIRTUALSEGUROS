@@ -11,6 +11,7 @@ import "server-only";
  */
 import { randomInt } from "node:crypto";
 import { normalizeAdvisorId } from "@/lib/advisorLink";
+import type { ConsentRecord } from "@/lib/legal";
 import type { AnyQuoteForm, AssistantQuoteForm } from "@/lib/validation/quoteSchemas";
 import { toQuoteRequest } from "@/services/clients";
 import type {
@@ -53,7 +54,7 @@ export async function createQuoteRequest(
   type: InsuranceType,
   form: AnyQuoteForm | AssistantQuoteForm,
   advisorId: string | null = null,
-  { source = "formulario", notes }: { source?: RequestSource; notes?: string } = {},
+  { source = "formulario", notes, consent }: { source?: RequestSource; notes?: string; consent?: ConsentRecord } = {},
 ): Promise<QuoteRequestReceipt> {
   const { contact, details } = toQuoteRequest(type, form);
   const formData: Record<string, unknown> = notes ? { ...details, observaciones: notes } : details;
@@ -78,6 +79,7 @@ export async function createQuoteRequest(
         formData,
         advisorId: normalizeAdvisorId(advisorId),
         source,
+        consent: consent ?? null,
       });
       return { requestId: created.reference, status: created.status, createdAt: created.createdAt, isDemo: false };
     } catch (error) {

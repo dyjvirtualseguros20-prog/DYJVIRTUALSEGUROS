@@ -7,7 +7,7 @@ import { DuplicateReferenceError, type QuoteRequestStore } from "./types";
 const TABLE = "quote_requests";
 
 const COLUMNS =
-  "id, reference, created_at, updated_at, insurance_type, full_name, identification, phone, whatsapp, email, city, status, form_data, advisor_notes, quote_amount, contacted_at, advisor_id, source";
+  "id, reference, created_at, updated_at, insurance_type, full_name, identification, phone, whatsapp, email, city, status, form_data, advisor_notes, quote_amount, contacted_at, advisor_id, source, consent";
 
 interface Row {
   id: string;
@@ -28,6 +28,7 @@ interface Row {
   contacted_at: string | null;
   advisor_id: string | null;
   source: QuoteRequestRecord["source"] | null;
+  consent: Record<string, unknown> | null;
 }
 
 function toRecord(row: Row): QuoteRequestRecord {
@@ -51,6 +52,7 @@ function toRecord(row: Row): QuoteRequestRecord {
     contactedAt: row.contacted_at,
     advisorId: row.advisor_id,
     source: row.source ?? "formulario",
+    consent: row.consent ?? {},
   };
 }
 
@@ -84,6 +86,7 @@ export const supabaseStore: QuoteRequestStore = {
         p_form_data: input.formData,
         p_advisor_id: input.advisorId,
         p_source: input.source,
+        p_consent: input.consent ?? {},
       })
       .single<{ id: string; reference: string; status: QuoteRequestRecord["status"]; created_at: string }>();
 

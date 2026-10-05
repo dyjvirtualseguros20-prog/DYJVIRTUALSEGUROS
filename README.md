@@ -144,3 +144,11 @@ ChatWidget ─► POST /api/chat ─► server/assistant (orquestador) ─► se
 | Vercel (respaldo)       | No hay Workers AI: el botón no aparece.                                                        |
 
 Opcional: `WORKERS_AI_MODEL` para probar otro modelo. Costo: 10.000 neuronas diarias gratis (≈ 60 mensajes con el modelo por defecto); con Workers Paid, US$0,011 por 1.000 neuronas (≈ US$0,0016 por mensaje).
+
+## Datos personales, autorizaciones y seguridad
+
+- **Documentos:** `/politica-de-privacidad` (versión en `config/site.ts → legal.privacyPolicyVersion`) y `/terminos-y-condiciones` (`legal.termsVersion`). Los datos de la empresa que falten aparecen como **[POR COMPLETAR]**. Si cambias un texto legal, sube su versión.
+- **Autorizaciones separadas** (`lib/legal.ts`, `components/legal/ConsentChecks.tsx`): A) leyó la política y los términos, B) uso de datos para la cotización (ambas obligatorias), C) envío a aseguradoras (opcional). El servidor guarda el registro en `quote_requests.consent` (fecha, versiones, tipo, origen). Migración `0005_consent_records.sql` (copia previa en `supabase/backups/`).
+- **Aseguradoras** (`server/insurers/`): solo desde el servidor, solo con autorización C, solo los campos que cada aseguradora declara, respuestas validadas, y bitácora en `insurer_transmissions`. El asesor virtual no puede enviar datos.
+- **Secretos:** nunca en el código, en `NEXT_PUBLIC_*` ni en GitHub. Van en Cloudflare → Workers → dyj-virtual-seguros → Configuración → Variables y secretos (tipo **Secret**). `.env.local` y `.dev.vars` están en `.gitignore`.
+- **Asesor virtual:** se presenta como asistente con IA; el servidor bloquea afirmaciones de pólizas aprobadas o emitidas, garantías, "la mejor aseguradora" y precios no escritos por el cliente, y no guarda datos de salud.
