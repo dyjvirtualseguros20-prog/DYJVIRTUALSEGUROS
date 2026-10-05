@@ -17,6 +17,12 @@
   "images": {
     "binding": "IMAGES",
   },
+  // Dominio propio. La URL .workers.dev sigue activa como respaldo.
+  "workers_dev": true,
+  "routes": [
+    { "pattern": "dyjvirtualseguros.com", "custom_domain": true },
+    { "pattern": "www.dyjvirtualseguros.com", "custom_domain": true },
+  ],
   "observability": {
     "enabled": true,
   },
