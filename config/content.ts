@@ -5,9 +5,10 @@
  */
 
 export const heroContent = {
-  eyebrow: "Agencia de seguros · Asesoría personalizada",
+  eyebrow: "Agencia de seguros en Bogotá · Asesoría personalizada",
   title: "Protegemos lo que más importa",
-  subtitle: "Encuentra opciones de seguros para proteger tu vehículo, tu familia, tu hogar y tu patrimonio.",
+  subtitle:
+    "Comparamos opciones de diferentes aseguradoras para proteger tu vehículo, tu familia, tu hogar y tu patrimonio.",
   primaryCta: "Cotizar ahora",
   secondaryCta: "Hablar con un asesor",
   trustPoints: ["Cotiza en línea", "Atención por WhatsApp", "Asesoría en todo el proceso"],
@@ -19,6 +20,7 @@ export const aboutContent = {
   paragraphs: [
     "Somos una agencia e intermediario de seguros. Nuestro trabajo es escuchar lo que necesitas proteger y ayudarte a encontrar alternativas de diferentes aseguradoras que se ajusten a tu situación y a tu presupuesto.",
     "Te explicamos las opciones en un lenguaje sencillo, resolvemos tus dudas y te acompañamos durante todo el proceso: desde la cotización hasta la expedición de tu póliza y después de ella.",
+    "Estamos en Bogotá y atendemos de forma virtual a clientes en toda Colombia, e incluso a quienes nos escriben desde el exterior. Si prefieres una atención presencial, podemos agendar una cita en Bogotá o, previa coordinación, visitarte en tu domicilio dentro de la ciudad.",
   ],
   pillars: [
     {
@@ -91,6 +93,18 @@ export const faqs = [
   },
   {
     q: "¿Puedo comparar diferentes opciones?",
-    a: "Sí. Nuestro objetivo es presentarte varias alternativas para que compares coberturas, condiciones y precios antes de decidir.",
+    a: "Sí. Revisamos opciones de diferentes aseguradoras y te presentamos varias alternativas para que compares coberturas, condiciones y precios antes de decidir.",
+  },
+  {
+    q: "¿Atienden solo en Bogotá?",
+    a: "No. Estamos en Bogotá, pero asesoramos y cotizamos de forma virtual en toda Colombia, y también atendemos a clientes que se encuentran en el exterior. Si necesitas atención presencial, podemos agendar una cita en Bogotá o visitarte en tu domicilio dentro de la ciudad, previa coordinación.",
+  },
+  {
+    q: "¿Cuál es el horario de atención?",
+    a: "La asesoría comercial y las cotizaciones se atienden de lunes a domingo, de 7:00 a. m. a 6:00 p. m. Si ya eres nuestro cliente y tienes un accidente o una situación urgente relacionada con tu seguro, puedes escribirle a tu asesor a cualquier hora para recibir orientación.",
+  },
+  {
+    q: "¿Qué hago si tengo un accidente?",
+    a: "Escríbele a tu asesor por WhatsApp a cualquier hora y te orientaremos sobre los pasos a seguir y cómo comunicarte con tu aseguradora. Ten en cuenta que somos una agencia de seguros: la asistencia, las emergencias y el pago de siniestros los presta directamente la aseguradora, según tu póliza. Si hay personas heridas, llama primero a la línea de emergencias 123.",
   },
 ];

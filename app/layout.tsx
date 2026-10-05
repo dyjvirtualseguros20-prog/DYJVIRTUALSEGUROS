@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import type { CSSProperties, ReactNode } from "react";
 import { siteConfig, siteUrl } from "@/config/site";
+import { HOME_TITLE } from "@/lib/seo";
 import "@/styles/globals.css";
 
 const jakarta = Plus_Jakarta_Sans({
@@ -10,41 +11,31 @@ const jakarta = Plus_Jakarta_Sans({
   display: "swap",
 });
 
+/**
+ * Metadatos base. Cada página pública define su propio título, descripción, URL
+ * canónica y vista previa con lib/seo.ts → pageMetadata(). Aquí no se fija una URL
+ * canónica ni "index" para que no se hereden en la página 404 ni en /admin.
+ */
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: `${siteConfig.name} | Cotiza tu seguro en línea`,
+    default: HOME_TITLE,
     template: `%s | ${siteConfig.name}`,
   },
   description: siteConfig.description,
   applicationName: siteConfig.name,
-  keywords: [
-    "seguros",
-    "cotizar seguro",
-    "seguro de vehículos",
-    "seguro de vida",
-    "seguro de hogar",
-    "seguro de salud",
-    "seguro de viajes",
-    "seguros empresariales",
-    "agencia de seguros",
-    "Colombia",
-  ],
-  alternates: { canonical: "/" },
   openGraph: {
     type: "website",
     locale: siteConfig.locale,
-    url: "/",
     siteName: siteConfig.name,
-    title: `${siteConfig.name} | ${siteConfig.tagline}`,
+    title: HOME_TITLE,
     description: siteConfig.description,
   },
   twitter: {
     card: "summary_large_image",
-    title: `${siteConfig.name} | ${siteConfig.tagline}`,
+    title: HOME_TITLE,
     description: siteConfig.description,
   },
-  robots: { index: true, follow: true },
   formatDetection: { telephone: false },
 };
 

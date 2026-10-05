@@ -20,6 +20,7 @@ export function Logo({ tone = "dark", className }: { tone?: "dark" | "light"; cl
             alt={logo.alt}
             width={logo.width}
             height={logo.height}
+            sizes="44px"
             className="h-full w-full object-contain"
             priority
           />

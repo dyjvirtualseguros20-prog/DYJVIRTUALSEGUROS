@@ -24,6 +24,7 @@ export function About() {
                     alt={siteConfig.logo.alt}
                     width={siteConfig.logo.width}
                     height={siteConfig.logo.height}
+                    sizes="224px"
                     className="h-auto w-full max-w-56 object-contain"
                   />
                 </div>

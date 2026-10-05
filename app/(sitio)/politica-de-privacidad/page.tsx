@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { siteConfig } from "@/config/site";
+import { pageMetadata } from "@/lib/seo";
 import { Container } from "@/components/ui/Container";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Política de tratamiento de datos personales",
   description: `Cómo ${siteConfig.legalName} recopila, usa y protege los datos personales de quienes solicitan una cotización de seguros.`,
-  alternates: { canonical: "/politica-de-privacidad" },
-};
+  path: "/politica-de-privacidad",
+});
 
 /**
  * POLÍTICA DE TRATAMIENTO DE DATOS PERSONALES

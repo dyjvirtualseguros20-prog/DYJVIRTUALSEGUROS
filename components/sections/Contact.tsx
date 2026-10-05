@@ -21,16 +21,21 @@ export async function Contact() {
     ...(contact.email
       ? [{ icon: "mail" as const, label: "Correo", value: contact.email, href: `mailto:${contact.email}` }]
       : []),
-    ...(contact.city || contact.address
+    ...(contact.serviceArea || contact.city || contact.address
       ? [
           {
             icon: "pin" as const,
             label: "Ubicación",
-            value: [contact.address, contact.city].filter(Boolean).join(", "),
+            value: contact.serviceArea || [contact.address, contact.city].filter(Boolean).join(", "),
           },
         ]
       : []),
-    ...(contact.schedule ? [{ icon: "clock" as const, label: "Horario", value: contact.schedule }] : []),
+    ...(contact.schedule
+      ? [{ icon: "clock" as const, label: "Asesoría y cotizaciones", value: contact.schedule }]
+      : []),
+    ...(contact.urgentSupport
+      ? [{ icon: "shield" as const, label: "Orientación ante accidentes", value: contact.urgentSupport }]
+      : []),
   ];
 
   return (

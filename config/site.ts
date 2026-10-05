@@ -14,7 +14,7 @@ export const siteConfig = {
   /** Frase corta para SEO y redes sociales. */
   tagline: "Protegemos lo que más importa",
   description:
-    "Agencia de seguros que te ayuda a encontrar opciones de protección para tu vehículo, tu familia, tu hogar, tu salud, tus viajes y tu empresa. Cotiza en línea o habla con un asesor por WhatsApp.",
+    "Agencia de seguros en Bogotá con atención virtual en toda Colombia. Comparamos opciones de diferentes aseguradoras para tu vehículo, vida, hogar, salud, viajes y empresa.",
 
   /**
    * LOGO
@@ -47,10 +47,18 @@ export const siteConfig = {
     /** Teléfono adicional, p. ej. "+57 601 000 0000". */
     secondaryPhone: "",
     email: "dyjvirtualseguros20@gmail.com",
-    city: "bogota",
-    address: "carrera 53 no176 63",
-    /** Horario de atención, p. ej. "Lunes a viernes, 8:00 a. m. – 6:00 p. m." */
-    schedule: "",
+    city: "Bogotá",
+    /**
+     * Dirección pública. Vacía a propósito: la dirección de la agencia no es una oficina
+     * abierta al público (solo aparece como domicilio en la política de datos).
+     */
+    address: "",
+    /** Zona de atención (se muestra en Contacto y en el pie de página). */
+    serviceArea: "Bogotá, con atención virtual en toda Colombia",
+    /** Horario de atención comercial: asesoría y cotizaciones. */
+    schedule: "Lunes a domingo, 7:00 a. m. – 6:00 p. m.",
+    /** Orientación a clientes ante accidentes o situaciones urgentes (no es un servicio de emergencias). */
+    urgentSupport: "24/7 para clientes ante accidentes",
   },
 
   /**
@@ -61,7 +69,7 @@ export const siteConfig = {
     /** NIT con dígito de verificación, p. ej. "900.123.456-7". */
     nit: "900788292",
     /** Dirección física del domicilio principal. */
-    address: "carrera 53 no176 63",
+    address: "Carrera 53 # 176-63",
     /** Ciudad del domicilio principal. */
     city: "Bogotá",
     /** Correo para consultas y reclamos sobre datos personales. */

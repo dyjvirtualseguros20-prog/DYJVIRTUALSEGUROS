@@ -23,7 +23,7 @@ export async function Footer() {
         </div>
 
         <nav aria-label="Seguros">
-          <h3 className="mb-4 text-sm font-bold text-white">Seguros</h3>
+          <p className="mb-4 text-sm font-bold text-white">Seguros</p>
           <ul className="space-y-2.5 text-sm">
             {INSURANCE_PRODUCTS.map((p) => (
               <li key={p.id}>
@@ -36,7 +36,7 @@ export async function Footer() {
         </nav>
 
         <nav aria-label="Enlaces">
-          <h3 className="mb-4 text-sm font-bold text-white">Enlaces</h3>
+          <p className="mb-4 text-sm font-bold text-white">Enlaces</p>
           <ul className="space-y-2.5 text-sm">
             {mainNav.map((item) => (
               <li key={item.href}>
@@ -54,7 +54,7 @@ export async function Footer() {
         </nav>
 
         <div>
-          <h3 className="mb-4 text-sm font-bold text-white">Contacto</h3>
+          <p className="mb-4 text-sm font-bold text-white">Contacto</p>
           <ul className="space-y-2.5 text-sm">
             <li>
               <a
@@ -75,8 +75,9 @@ export async function Footer() {
                 </a>
               </li>
             )}
-            {contact.city && <li>{contact.city}</li>}
-            {contact.schedule && <li>{contact.schedule}</li>}
+            {(contact.serviceArea || contact.city) && <li>{contact.serviceArea || contact.city}</li>}
+            {contact.schedule && <li>Asesoría y cotizaciones: {contact.schedule}</li>}
+            {contact.urgentSupport && <li>Orientación ante accidentes: {contact.urgentSupport}</li>}
           </ul>
         </div>
       </Container>

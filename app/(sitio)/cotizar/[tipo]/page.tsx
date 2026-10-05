@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getProduct } from "@/lib/insurance";
+import { siteConfig, siteUrl } from "@/config/site";
+import { getProduct, type InsuranceProduct } from "@/lib/insurance";
+import { AREA_SERVED, breadcrumbs, jsonLd, ORGANIZATION_ID, pageMetadata } from "@/lib/seo";
 import { whatsappUrl } from "@/lib/whatsapp";
 import { getCurrentContact } from "@/server/advisors";
 import { INSURANCE_TYPES, isInsuranceType } from "@/types";
 import { Container } from "@/components/ui/Container";
 import { Icon, INSURANCE_ICONS, WhatsAppIcon } from "@/components/ui/Icon";
 import { InsuranceSelector } from "@/components/quote/InsuranceSelector";
+import { InsuranceInfo } from "@/components/quote/InsuranceInfo";
 import { QuoteWizard } from "@/components/quote/QuoteWizard";
 
 type Props = { params: Promise<{ tipo: string }> };
@@ -23,11 +26,39 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { tipo } = await params;
   if (!isInsuranceType(tipo)) return {};
   const product = getProduct(tipo);
-  return {
-    title: `Cotizar ${product.name.toLowerCase()}`,
-    description: `${product.description} Solicita tu cotización en línea.`,
-    alternates: { canonical: `/cotizar/${tipo}` },
-  };
+  return pageMetadata({ title: product.seoTitle, description: product.seoDescription, path: `/cotizar/${tipo}` });
+}
+
+/** Datos estructurados: servicio, ruta de navegación y preguntas frecuentes. */
+function StructuredData({ product }: { product: InsuranceProduct }) {
+  const path = `/cotizar/${product.id}`;
+  const data = [
+    {
+      "@context": "https://schema.org",
+      "@type": "Service",
+      name: product.name,
+      serviceType: product.name,
+      description: product.info.intro,
+      url: new URL(path, siteUrl).toString(),
+      provider: { "@type": "InsuranceAgency", "@id": ORGANIZATION_ID, name: siteConfig.legalName, url: siteUrl },
+      areaServed: AREA_SERVED,
+    },
+    breadcrumbs([
+      { name: "Inicio", path: "/" },
+      { name: "Cotizar", path: "/cotizar" },
+      { name: product.name, path },
+    ]),
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: product.info.faqs.map((f) => ({
+        "@type": "Question",
+        name: f.q,
+        acceptedAnswer: { "@type": "Answer", text: f.a },
+      })),
+    },
+  ];
+  return <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(data)} />;
 }
 
 export default async function CotizarTipoPage({ params }: Props) {
@@ -38,6 +69,7 @@ export default async function CotizarTipoPage({ params }: Props) {
 
   return (
     <section className="bg-gradient-to-b from-brand-50 to-white pt-24 pb-24 sm:pt-32">
+      <StructuredData product={product} />
       <Container className="max-w-4xl">
         <Link
           href="/cotizar"
@@ -83,6 +115,8 @@ export default async function CotizarTipoPage({ params }: Props) {
             Cotiza por WhatsApp
           </a>
         </p>
+
+        <InsuranceInfo product={product} />
       </Container>
     </section>
   );

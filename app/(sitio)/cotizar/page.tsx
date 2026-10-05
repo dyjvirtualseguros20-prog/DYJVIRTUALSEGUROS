@@ -1,21 +1,31 @@
 import type { Metadata } from "next";
+import { breadcrumbs, jsonLd, pageMetadata } from "@/lib/seo";
 import { whatsappUrl } from "@/lib/whatsapp";
 import { getCurrentContact } from "@/server/advisors";
 import { Container } from "@/components/ui/Container";
 import { WhatsAppIcon } from "@/components/ui/Icon";
 import { InsuranceSelector } from "@/components/quote/InsuranceSelector";
 
-export const metadata: Metadata = {
-  title: "Cotizar seguro",
+export const metadata: Metadata = pageMetadata({
+  title: "Cotizar seguros en línea en Bogotá y Colombia",
   description:
-    "Elige el seguro que necesitas —vehículos, vida, hogar, salud, viajes o empresas— y solicita tu cotización en línea en pocos minutos.",
-  alternates: { canonical: "/cotizar" },
-};
+    "Cotiza en línea tu seguro de carro, vida, hogar, salud, viajes o empresa. Comparamos opciones de diferentes aseguradoras con asesoría personalizada.",
+  path: "/cotizar",
+});
 
 export default async function CotizarPage() {
   const contact = await getCurrentContact();
   return (
     <section className="bg-gradient-to-b from-brand-50 to-white pt-28 pb-24 sm:pt-36">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={jsonLd(
+          breadcrumbs([
+            { name: "Inicio", path: "/" },
+            { name: "Cotizar", path: "/cotizar" },
+          ]),
+        )}
+      />
       <Container className="max-w-5xl">
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-xs font-bold tracking-[0.18em] text-brand-500 uppercase">Cotizador · Paso 1 de 3</p>
@@ -38,6 +48,11 @@ export default async function CotizarPage() {
             <WhatsAppIcon className="size-4 text-whatsapp" />
             Pregúntale a un asesor
           </a>
+        </p>
+        <p className="mx-auto mt-10 max-w-2xl text-center text-sm leading-relaxed text-slate-500">
+          Somos una agencia de seguros en Bogotá con atención virtual en toda Colombia. Comparamos opciones de
+          diferentes aseguradoras para que encuentres la alternativa adecuada, con la asesoría de una persona real en
+          todo el proceso.
         </p>
       </Container>
     </section>

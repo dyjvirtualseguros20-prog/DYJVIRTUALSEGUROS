@@ -12,7 +12,7 @@ export function InsuranceGrid() {
           id="seguros-title"
           eyebrow="Nuestros seguros"
           title="Elige lo que quieres proteger"
-          description="Cuéntanos qué necesitas y te ayudamos a encontrar alternativas que se ajusten a ti."
+          description="Cuéntanos qué necesitas y comparamos alternativas de diferentes aseguradoras que se ajusten a ti."
         />
 
         <ul className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
