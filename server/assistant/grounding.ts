@@ -85,10 +85,36 @@ export function groundedData(datos: Record<string, unknown>, userText: string): 
   const out: Record<string, string> = {};
   for (const [name, raw] of Object.entries(datos)) {
     if (typeof raw !== "string" && typeof raw !== "number") continue;
-    const value = String(raw).trim();
-    if (value && isGrounded(name, value, userText)) out[name] = value;
+    const value = decodeEscapes(String(raw)).trim();
+    if (value && isGrounded(name, value, userText)) out[name] = originalSpelling(name, value, userText);
   }
   return out;
+}
+
+/** "Bogotá" → "Bogotá" (algunos modelos devuelven las tildes escapadas). */
+const decodeEscapes = (s: string) =>
+  s.replace(/\\u([0-9a-fA-F]{4})/g, (_, hex: string) => String.fromCharCode(parseInt(hex, 16)));
+
+/**
+ * Para textos (nombre, ciudad, marca…) se usa la escritura exacta del cliente: si el modelo
+ * devolvió "Bogot" o "bogota", se guarda "Bogotá" tal como lo escribió.
+ */
+function originalSpelling(name: string, value: string, userText: string): string {
+  const def = fieldDef(name);
+  if (def?.options || (def?.kind && def.kind !== "text")) return value;
+  if (/^[\d\s.+-]+$/.test(value)) return value;
+  const target = fold(value).replace(/[^a-z0-9]/g, "");
+  const tokens = userText.split(/[\s,;:]+/).filter(Boolean);
+  const size = value.split(/\s+/).length;
+  for (let i = 0; i + size <= tokens.length; i++) {
+    const span = tokens
+      .slice(i, i + size)
+      .join(" ")
+      .replace(/[.!?]+$/, "");
+    const folded = fold(span).replace(/[^a-z0-9]/g, "");
+    if (folded === target || (folded.startsWith(target) && folded.length - target.length <= 2)) return span;
+  }
+  return value;
 }
 
 /** Datos inconfundibles del último mensaje (por si el modelo no los extrajo). */
@@ -140,3 +166,133 @@ export function obviousOptions(userText: string, type: InsuranceType | null, kno
   }
   return out;
 }
+
+/** Cobertura y uso del vehículo mencionados por el cliente (para no volver a preguntarlos). */
+export function obviousExtras(userText: string): { coverage?: string; useType?: string } {
+  const text = fold(userText);
+  const out: { coverage?: string; useType?: string } = {};
+  if (/todo\s*riesgo/.test(text)) out.coverage = "Todo riesgo";
+  else if (/responsabilidad civil|\brc\b/.test(text)) out.coverage = "Responsabilidad civil";
+  if (/particular|uso personal|uso familiar/.test(text)) out.useType = "Particular";
+  else if (/comercial|taxi|plataforma|uber|servicio publico|para trabajar|uso de trabajo/.test(text))
+    out.useType = "Comercial";
+  return out;
+}
+
+/**
+ * Cédula y año escritos sin contexto ("…, 1000572982, Bogotá, …, 2023"): solo si hay una
+ * única cifra posible y el campo todavía falta.
+ */
+export function obviousNumbers(lastMessage: string, missing: Set<string>): Record<string, string> {
+  const out: Record<string, string> = {};
+  // Valores en pesos ("200 millones", "$300.000.000") no son cédulas.
+  if (/mill[oó]n|\$|pesos|valor|cobertura de/i.test(lastMessage)) return out;
+  const numbers = (lastMessage.match(/\d[\d.]*\d|\d/g) ?? []).map((n) => n.replace(/\./g, ""));
+
+  if (missing.has("documentNumber")) {
+    // 5 a 12 cifras, que no sea un celular (10 cifras empezando por 3) ni un año.
+    const ids = numbers.filter((n) => n.length >= 5 && n.length <= 12 && !/^3\d{9}$/.test(n) && !/^57?3\d{9}$/.test(n));
+    if (ids.length === 1) out.documentNumber = ids[0];
+  }
+  if (missing.has("year")) {
+    const max = new Date().getFullYear() + 1;
+    const years = numbers.filter((n) => /^(19[7-9]\d|20\d\d)$/.test(n) && Number(n) <= max);
+    if (years.length === 1) out.year = years[0];
+  }
+  return out;
+}
+
+/** Nombre completo: "me llamo …", "mi nombre es …", "soy …" o el primer elemento de una lista "Nombre Apellido, 1020…, Bogotá…". */
+export function obviousName(lastMessage: string): string | undefined {
+  const words = (s: string) => s.trim().split(/\s+/).filter(Boolean);
+  // Palabras que no aparecen en un nombre propio ("Es una camioneta de uso particular" no es un nombre).
+  const notName =
+    /^(es|una|un|el|la|los|las|mi|mis|tengo|quiero|necesito|uso|de|para|con|placa|correo|carro|vehiculo|camioneta|moto|seguro|todo|riesgo|particular|comercial|hola|vivo|en|y|que|soy)$/;
+  const isName = (s: string) =>
+    /^[\p{L}' .-]+$/u.test(s.trim()) &&
+    words(s).length >= 2 &&
+    words(s).length <= 6 &&
+    s.trim().length <= 80 &&
+    !words(s).some((w) => notName.test(fold(w)));
+
+  const intro = lastMessage.match(
+    /(?:me llamo|mi nombre es|mi nombre completo es|soy)\s+([\p{L}' .-]+?)(?=\s*[,;.\n]|\s+(?:y|con|de|vivo|mi|c[eé]dula|cel|tel|correo|n[uú]mero)\b|$)/iu,
+  );
+  if (intro && isName(intro[1])) return intro[1].trim();
+
+  const segments = lastMessage.split(/[,;\n]/);
+  if (segments.length >= 3 && isName(segments[0])) return segments[0].trim();
+  return undefined;
+}
+
+/** Ciudades frecuentes, con su escritura correcta (para reconocerlas aunque el modelo no las extraiga). */
+const CITIES = [
+  "Bogotá",
+  "Medellín",
+  "Cali",
+  "Barranquilla",
+  "Cartagena",
+  "Bucaramanga",
+  "Pereira",
+  "Manizales",
+  "Cúcuta",
+  "Ibagué",
+  "Santa Marta",
+  "Villavicencio",
+  "Pasto",
+  "Montería",
+  "Neiva",
+  "Armenia",
+  "Popayán",
+  "Valledupar",
+  "Sincelejo",
+  "Tunja",
+  "Riohacha",
+  "Quibdó",
+  "Florencia",
+  "Yopal",
+  "Soacha",
+  "Chía",
+  "Zipaquirá",
+  "Facatativá",
+  "Mosquera",
+  "Funza",
+  "Madrid",
+  "Cajicá",
+  "Fusagasugá",
+  "Girardot",
+  "Bello",
+  "Envigado",
+  "Itagüí",
+  "Sabaneta",
+  "Rionegro",
+  "Soledad",
+  "Palmira",
+  "Buenaventura",
+  "Tuluá",
+  "Jamundí",
+  "Floridablanca",
+  "Girón",
+  "Piedecuesta",
+  "Dosquebradas",
+  "Sogamoso",
+  "Duitama",
+  "Apartadó",
+  "Turbo",
+  "Barrancabermeja",
+  "San Andrés",
+];
+
+/** Ciudad: "vivo en …", "ciudad: …" o una ciudad conocida mencionada en el mensaje. */
+export function obviousCity(lastMessage: string): string | undefined {
+  const text = fold(lastMessage);
+  const known = CITIES.filter((c) => new RegExp(`(^|[^a-z])${fold(c)}([^a-z]|$)`).test(text));
+  if (known.length === 1) return known[0];
+  const said = lastMessage.match(
+    /(?:vivo en|ciudad(?: es)?:?|resido en|estoy en)\s+([\p{L}][\p{L} .'-]{1,40}?)(?=\s*[,;.\n]|\s+y\b|$)/iu,
+  );
+  return said?.[1]?.trim();
+}
+
+/** Quita comillas y signos sueltos al inicio o al final ("Particular”," → "Particular"). */
+export const trimPunctuation = (s: string) => s.replace(/^[\s"“”'«».,;:]+|[\s"“”'«».,;:]+$/g, "");

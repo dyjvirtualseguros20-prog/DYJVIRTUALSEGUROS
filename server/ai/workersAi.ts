@@ -14,7 +14,7 @@ import "server-only";
 
 /** Modelo por defecto: buen español, contexto de 24.000 tokens y salida JSON garantizada (JSON Mode). */
 export const DEFAULT_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
-const TIMEOUT_MS = 20_000;
+const TIMEOUT_MS = 30_000;
 
 export interface ModelMessage {
   role: "system" | "user" | "assistant";
@@ -102,7 +102,10 @@ export async function getLanguageModel(): Promise<LanguageModel | null> {
         }),
       );
     } catch (error) {
-      if (error instanceof AiError) throw error;
+      if (error instanceof AiError) {
+        console.error(`[workers-ai] ${model}: ${error.message}`);
+        throw error;
+      }
       const message = error instanceof Error ? error.message : String(error);
       // Se registra en el servidor; al visitante nunca se le muestra el detalle.
       console.error(`[workers-ai] ${model}: ${message.slice(0, 300)}`);

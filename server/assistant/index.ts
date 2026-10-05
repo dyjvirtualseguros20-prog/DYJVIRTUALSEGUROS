@@ -6,7 +6,8 @@ import "server-only";
  *   mensaje del cliente + LeadState
  *     └─► Workers AI (JSON): respuesta + intención + datos del último mensaje
  *           └─► mergeLead(): valida cada dato con las reglas de los formularios
- *                 ├─ datos con error   → se piden de nuevo (mensaje del sistema)
+ *                 ├─ faltan datos       → UN mensaje agrupado: "Ya tengo… / Envíame en un solo mensaje…"
+ *                 │                       (incluye los datos con error, explicados)
  *                 ├─ solicitud completa → tarjeta de confirmación (quote_draft)
  *                 └─ accidente / pide una persona → botón de WhatsApp
  *
@@ -20,7 +21,17 @@ import { cleanText, type ChatMessage, type ChatResponse, type LeadState } from "
 import { getProduct } from "@/lib/insurance";
 import type { Advisor } from "@/types";
 import { AiError, getLanguageModel, isWorkersAiAvailable, type ModelMessage } from "@/server/ai/workersAi";
-import { groundedData, obviousData, obviousOptions } from "./grounding";
+import { groupedRequest } from "./collect";
+import {
+  groundedData,
+  obviousData,
+  obviousExtras,
+  obviousCity,
+  obviousName,
+  obviousNumbers,
+  obviousOptions,
+  trimPunctuation,
+} from "./grounding";
 import { buildQuoteDraft, evaluateLead, fieldsFor, isInsuranceType, mergeLead } from "./lead";
 import { RESPONSE_SCHEMA, systemPrompt } from "./prompt";
 
@@ -41,6 +52,8 @@ const modelOutput = z.object({
   insuranceType: z.string().catch("ninguno"),
   datos: z.record(z.string(), z.unknown()).catch({}),
   observaciones: z.string().catch(""),
+  cobertura: z.string().catch(""),
+  uso: z.string().catch(""),
 });
 
 function bogotaToday(): string {
@@ -59,6 +72,19 @@ function tidyReply(text: string): string {
   ).slice(0, 1200);
 }
 
+/** Respuesta completa del modelo sin las preguntas finales (los datos se piden en la lista agrupada). */
+function withoutQuestions(reply: string): string {
+  const kept = reply.split(/(?<=[.!?])\s+/).filter((s) => s && !s.includes("?") && !s.includes("¿"));
+  return kept.join(" ").trim() || "¡Con gusto! 👍";
+}
+
+/** Frase de confirmación del modelo, sin preguntas (las preguntas las arma el sistema agrupadas). */
+function acknowledgment(reply: string): string {
+  const sentences = reply.split(/(?<=[.!?])\s+/).filter((s) => s && !s.includes("?") && !s.includes("¿"));
+  const ack = sentences.slice(0, 2).join(" ").trim();
+  return ack || "¡Perfecto! 👍";
+}
+
 export async function replyToVisitor(
   history: ChatMessage[],
   lead: LeadState,
@@ -67,54 +93,55 @@ export async function replyToVisitor(
   const model = await getLanguageModel();
   if (!model) throw new AiError("Workers AI no está disponible.", "unavailable");
 
+  const recent = history.slice(-HISTORY_WINDOW);
   const messages: ModelMessage[] = [
     { role: "system", content: systemPrompt(advisor, bogotaToday(), lead) },
-    ...history.slice(-HISTORY_WINDOW).map((m) => ({ role: m.role, content: m.content })),
+    ...recent.map((m) => ({ role: m.role, content: m.content })),
   ];
   const output = modelOutput.parse(await model.generateJson(messages, RESPONSE_SCHEMA, MAX_OUTPUT_TOKENS));
 
-  // Solo se aceptan datos que el cliente escribió; además se rescatan correo, celular y placa.
-  const recent = history.slice(-HISTORY_WINDOW);
+  // ── Actualizar el estado del cliente con TODO lo que escribió (nunca datos inventados) ──
   const userText = recent
     .filter((m) => m.role === "user")
     .map((m) => m.content)
     .join("\n");
+  const lastMessage = history.at(-1)?.content ?? "";
   const type = isInsuranceType(output.insuranceType) ? output.insuranceType : lead.insuranceType;
-  const extracted = { ...obviousData(history.at(-1)?.content ?? "", type), ...groundedData(output.datos, userText) };
-  const datos = { ...obviousOptions(userText, type, { ...lead.fields, ...extracted }), ...extracted };
+  const fromModel = groundedData(output.datos, userText);
+  const known = { ...lead.fields, ...fromModel };
+  const missingNow = type ? new Set(evaluateLead(type, known).missing.map((f) => f.name)) : new Set<string>();
+  const extracted = {
+    ...obviousNumbers(lastMessage, missingNow),
+    ...obviousData(lastMessage, type),
+    ...fromModel,
+  };
+  const datos: Record<string, string> = {
+    ...obviousOptions(userText, type, { ...lead.fields, ...extracted }),
+    ...extracted,
+  };
+  // Nombre: si el modelo no lo vio (o solo tomó una palabra), se usa el que se reconoce en el texto.
+  const name = obviousName(lastMessage);
+  // Ciudad: igual, si falta y el cliente nombró una.
+  const city = obviousCity(lastMessage);
+  if (city && !datos.city && !lead.fields.city) datos.city = city;
+  // Nunca reemplaza un nombre válido que ya se tenía.
+  if (name && !lead.fields.fullName && (!datos.fullName || datos.fullName.split(/\s+/).length < 2))
+    datos.fullName = name;
+  const extras = obviousExtras(userText);
+  const coverage = groundedText(output.cobertura, userText) || extras.coverage;
+  const useType = groundedText(output.uso, userText) || extras.useType;
 
   const { lead: next, rejected } = mergeLead(lead, {
     insuranceType: output.insuranceType,
     datos,
     observaciones: output.observaciones,
+    coverage,
+    useType,
   });
-  let reply = tidyReply(output.reply) || "¿Me cuentas un poco más para poder ayudarte?";
+  const reply = tidyReply(output.reply) || "¿Me cuentas un poco más para poder ayudarte?";
 
-  // 1) Datos que no pasaron la validación: se piden de nuevo con el mensaje exacto del formulario.
-  const rejectedNames = Object.keys(rejected);
-  if (next.insuranceType && rejectedNames.length) {
-    const labels = new Map(fieldsFor(next.insuranceType).map((f) => [f.name, f.label]));
-    const problems = rejectedNames.map((n) => `${labels.get(n) ?? n}: ${rejected[n]}`).join(" ");
-    return { lead: next, reply: `Revisemos un dato 🙂 ${problems} ¿Me lo confirmas, por favor?` };
-  }
-
-  // 2) Accidente o pide hablar con una persona → botón de WhatsApp (asesor del enlace o el oficial).
-  if (output.intent === "accidente") {
-    // Orientación mínima garantizada (somos una agencia: la asistencia la presta la aseguradora).
-    if (!/123/.test(reply))
-      reply = `Mantén la calma. Si hay personas lesionadas o peligro, llama de inmediato a la línea de emergencias 123. ${reply}`;
-    if (!/aseguradora/i.test(reply))
-      reply += " Luego comunícate con tu aseguradora y sigue el procedimiento de tu póliza.";
-    if (!/whatsapp/i.test(reply))
-      reply += " También puedes escribirle a tu asesor por WhatsApp a cualquier hora para recibir orientación.";
-    if (!/agencia/i.test(reply))
-      reply += " Recuerda que somos una agencia que te orienta: la asistencia del siniestro la presta tu aseguradora.";
-    return {
-      lead: next,
-      reply,
-      action: { type: "whatsapp", message: "Hola, tuve un accidente y necesito orientación." },
-    };
-  }
+  // ── Accidente o pide hablar con una persona → botón de WhatsApp (asesor del enlace o el oficial) ──
+  if (output.intent === "accidente") return { lead: next, ...accidentReply(reply) };
   if (output.intent === "asesor_humano") {
     const product = next.insuranceType ? getProduct(next.insuranceType).name.toLowerCase() : null;
     return {
@@ -129,41 +156,59 @@ export async function replyToVisitor(
     };
   }
 
-  // 3) Solicitud completa → tarjeta de confirmación.
-  if (next.insuranceType && evaluateLead(next.insuranceType, next.fields).missing.length === 0) {
-    const draft = buildQuoteDraft(next);
-    if (draft) {
-      reply =
-        "¡Perfecto! Ya tengo todos los datos. Revisa el resumen, acepta la política de datos y pulsa «Enviar solicitud». Un asesor preparará tu cotización comparando opciones.";
-      return { lead: next, reply, action: { type: "quote_draft", draft } };
-    }
-  }
+  // ── Recolección de datos: agrupada, sin repetir lo que ya se sabe ──
+  const givingData = Object.keys(datos).length > 0 || Object.keys(rejected).length > 0 || Boolean(coverage || useType);
+  // "Quiero un seguro de vida", "necesito asegurar…": intención de cotizar aunque el modelo la vea como pregunta.
+  const wantsInsurance = /\b(quiero|quisiera|necesito|cotiz\w*|me interesa|asegurar|busco)\b/i.test(lastMessage);
+  if (next.insuranceType && (output.intent === "cotizar" || givingData || wantsInsurance)) {
+    const { missing } = evaluateLead(next.insuranceType, next.fields);
 
-  // 4) Faltan datos y el cliente está cotizando: si la respuesta no pide nada, se pide el siguiente dato.
-  if (
-    next.insuranceType &&
-    output.intent === "cotizar" &&
-    !reply.includes("?") &&
-    !/necesit|compart|indica|dime/i.test(reply)
-  ) {
-    const nextField = evaluateLead(next.insuranceType, next.fields).missing[0];
-    if (nextField) reply = `${reply} ${ASK[nextField.name] ?? `¿Me indicas ${nextField.label.toLowerCase()}?`}`;
+    // Completa → tarjeta de confirmación con todos los datos.
+    if (missing.length === 0) {
+      const draft = buildQuoteDraft(next);
+      if (draft) {
+        return {
+          lead: next,
+          reply:
+            "¡Perfecto! 👍 Ya tengo todos tus datos. Revísalos aquí abajo y, si están bien, acepta la política de datos y pulsa «Enviar solicitud» para solicitar tu cotización.",
+          action: { type: "quote_draft", draft },
+        };
+      }
+    }
+
+    const labels = new Map(fieldsFor(next.insuranceType).map((f) => [f.name, f.label]));
+    const corrections = Object.entries(rejected).map(([name, message]) => `${labels.get(name) ?? name}: ${message}`);
+    // Si el cliente hizo una pregunta, se responde completa antes de la lista; si no, solo una confirmación.
+    const leadIn = output.intent === "informacion" ? withoutQuestions(reply) : acknowledgment(reply);
+    return { lead: next, reply: groupedRequest(leadIn, next, missing, corrections) };
   }
 
   return { lead: next, reply };
 }
 
-/** Pregunta natural para pedir cada dato cuando el modelo no lo hizo. */
-const ASK: Record<string, string> = {
-  fullName: "¿Me compartes tu nombre completo?",
-  phone: "¿Cuál es tu número de celular?",
-  email: "¿Cuál es tu correo electrónico?",
-  city: "¿En qué ciudad vives?",
-  documentNumber: "¿Cuál es tu número de cédula?",
-  birthDate: "¿Cuál es tu fecha de nacimiento?",
-  plate: "¿Cuál es la placa del vehículo?",
-  vehicleType: "¿Qué tipo de vehículo es: automóvil, camioneta, campero, pickup, moto u otro?",
-  brand: "¿De qué marca es el vehículo?",
-  model: "¿Qué modelo o línea es?",
-  year: "¿De qué año es el modelo?",
-};
+/** Texto libre (cobertura, uso) solo si el cliente lo escribió. */
+function groundedText(value: string, userText: string): string {
+  const text = trimPunctuation(cleanText(value)).slice(0, 120);
+  if (!text) return "";
+  const compact = (s: string) =>
+    s
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .replace(/[^a-z0-9]/g, "");
+  return compact(userText).includes(compact(text)) ? text : "";
+}
+
+/** Orientación mínima garantizada ante un accidente (somos una agencia: la asistencia la presta la aseguradora). */
+function accidentReply(modelReply: string): Pick<ChatResponse, "reply" | "action"> {
+  let reply = modelReply;
+  if (!/123/.test(reply))
+    reply = `Mantén la calma. Si hay personas lesionadas o peligro, llama de inmediato a la línea de emergencias 123. ${reply}`;
+  if (!/aseguradora/i.test(reply))
+    reply += " Luego comunícate con tu aseguradora y sigue el procedimiento de tu póliza.";
+  if (!/whatsapp/i.test(reply))
+    reply += " También puedes escribirle a tu asesor por WhatsApp a cualquier hora para recibir orientación.";
+  if (!/agencia/i.test(reply))
+    reply += " Recuerda que somos una agencia que te orienta: la asistencia del siniestro la presta tu aseguradora.";
+  return { reply, action: { type: "whatsapp", message: "Hola, tuve un accidente y necesito orientación." } };
+}

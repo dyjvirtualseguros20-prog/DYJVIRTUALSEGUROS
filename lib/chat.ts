@@ -51,11 +51,15 @@ export interface LeadState {
   insuranceType: InsuranceType | null;
   /** Campos del formulario ya validados (nombres internos de lib/forms/quoteForms.ts). */
   fields: Record<string, string>;
-  /** Información adicional útil (cobertura de interés, uso del vehículo…). */
+  /** Cobertura que le interesa (ej. "Todo riesgo"). */
+  coverage: string;
+  /** Uso del vehículo (ej. "Particular", "Comercial"). */
+  useType: string;
+  /** Otra información adicional útil. */
   notes: string;
 }
 
-export const EMPTY_LEAD: LeadState = { insuranceType: null, fields: {}, notes: "" };
+export const EMPTY_LEAD: LeadState = { insuranceType: null, fields: {}, coverage: "", useType: "", notes: "" };
 
 export interface ChatResponse {
   reply: string;
@@ -79,6 +83,8 @@ const leadSchema = z
       .record(z.string().regex(/^[a-zA-Z]{2,30}$/), z.string().max(200).transform(cleanText))
       .refine((r) => Object.keys(r).length <= 25)
       .catch({}),
+    coverage: z.string().max(120).transform(cleanText).catch(""),
+    useType: z.string().max(120).transform(cleanText).catch(""),
     notes: z.string().max(600).transform(cleanText).catch(""),
   })
   .catch(EMPTY_LEAD);

@@ -66,6 +66,10 @@ export interface LeadUpdate {
   insuranceType?: unknown;
   datos?: unknown;
   observaciones?: unknown;
+  /** Cobertura de interés (ya verificada contra lo que escribió el cliente). */
+  coverage?: string;
+  /** Uso del vehículo (ya verificado). */
+  useType?: string;
 }
 
 /**
@@ -89,19 +93,41 @@ export function mergeLead(
   const merged = { ...previousFields, ...incoming };
 
   const notes = mergeNotes(changedType ? "" : previous.notes, update.observaciones);
+  // Un dato nuevo reemplaza al anterior; si no llega nada, se conserva el que había.
+  const coverage = cleanText(update.coverage ?? "").slice(0, 120) || (changedType ? "" : previous.coverage);
+  const useType = cleanText(update.useType ?? "").slice(0, 120) || (changedType ? "" : previous.useType);
+  const extras = { coverage, useType, notes };
 
   if (!type) {
     // Sin tipo de seguro todavía: se guardan solo los datos personales.
     return {
-      lead: { insuranceType: null, fields: keepKnown(merged, (n) => SHARED_FIELDS.has(n)), notes },
+      lead: { insuranceType: null, fields: keepKnown(merged, (n) => SHARED_FIELDS.has(n)), ...extras },
       rejected: {},
     };
   }
 
-  const { valid, errors } = evaluateLead(type, merged);
+  let { valid, errors } = evaluateLead(type, merged);
   const rejected: Record<string, string> = {};
   for (const name of Object.keys(incoming)) if (errors[name]) rejected[name] = errors[name];
-  return { lead: { insuranceType: type, fields: valid, notes }, rejected };
+  // Si el dato nuevo no es válido pero había uno válido antes, se conserva el anterior.
+  const restore = Object.keys(rejected).filter((name) => previousFields[name]);
+  if (restore.length) {
+    ({ valid, errors } = evaluateLead(type, {
+      ...merged,
+      ...Object.fromEntries(restore.map((n) => [n, previousFields[n]])),
+    }));
+  }
+  return { lead: { insuranceType: type, fields: valid, ...extras }, rejected };
+}
+
+/** Observaciones que se guardan con la solicitud: cobertura, uso y otros detalles. */
+export function leadNotes(lead: LeadState): string | undefined {
+  const parts = [
+    lead.coverage && `Cobertura de interés: ${lead.coverage}`,
+    lead.useType && `Uso: ${lead.useType}`,
+    lead.notes,
+  ].filter(Boolean);
+  return parts.length ? parts.join(". ").slice(0, 500) : undefined;
 }
 
 function mergeNotes(previous: string, addition: unknown): string {
@@ -126,8 +152,10 @@ export function buildQuoteDraft(lead: LeadState): QuoteDraft | null {
     if (field.kind === "date") text = formatPlainDate(text);
     return { label: field.label, value: text };
   });
-  const notes = lead.notes || undefined;
-  if (notes) summary.push({ label: "Observaciones", value: notes });
+  if (lead.coverage) summary.push({ label: "Cobertura de interés", value: lead.coverage });
+  if (lead.useType) summary.push({ label: "Uso", value: lead.useType });
+  if (lead.notes) summary.push({ label: "Observaciones", value: lead.notes });
+  const notes = leadNotes(lead);
 
   const form = Object.fromEntries(defs.map((d) => [d.name, lead.fields[d.name] ?? ""]));
   return { insuranceType: type, form, notes, summary };
