@@ -1,15 +1,15 @@
 /**
  * POST /api/chat — Asesor virtual (IA)
  * ────────────────────────────────────
- * Recibe la conversación (solo texto, sin datos guardados), la valida y responde
- * con Claude desde el servidor. La clave de Anthropic nunca sale del servidor.
+ * Recibe la conversación reciente y el estado de la solicitud (LeadState), los valida y
+ * responde con Cloudflare Workers AI desde el servidor (binding env.AI, sin claves).
  * El asistente NO guarda solicitudes: devuelve un borrador que el cliente confirma
  * en la tarjeta y que se envía a /api/quote-requests (source = "asistente_ia").
  */
 import { NextResponse } from "next/server";
 import { CHAT_LIMITS, chatRequestSchema, type ChatResponse } from "@/lib/chat";
 import { getCurrentAdvisor } from "@/server/advisors";
-import { AssistantError, replyToVisitor } from "@/server/assistant";
+import { AiError, replyToVisitor } from "@/server/assistant";
 import { clientIp, rateLimited } from "@/server/rateLimit";
 
 const json = (body: ChatResponse | { error: string }, status = 200) =>
@@ -52,10 +52,10 @@ export async function POST(request: Request) {
   try {
     // Asesor de la visita: el de la cookie del enlace (/cristian, /jeisson…). El chat no puede cambiarlo.
     const advisor = await getCurrentAdvisor();
-    return json(await replyToVisitor(parsed.data.messages, advisor));
+    return json(await replyToVisitor(parsed.data.messages, parsed.data.lead, advisor));
   } catch (error) {
-    const kind = error instanceof AssistantError ? error.kind : "failed";
-    if (!(error instanceof AssistantError)) console.error("[api/chat]", error);
+    const kind = error instanceof AiError ? error.kind : "failed";
+    if (!(error instanceof AiError)) console.error("[api/chat]", error);
     return json(
       {
         error:

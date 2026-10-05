@@ -1,5 +1,10 @@
 import path from "node:path";
 import type { NextConfig } from "next";
+import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
+
+// Solo en desarrollo (next dev): da acceso a los bindings de wrangler.jsonc, por ejemplo
+// Workers AI (env.AI), que siempre se ejecuta en la cuenta de Cloudflare (usa wrangler login).
+if (process.env.NODE_ENV === "development") void initOpenNextCloudflareForDev();
 
 /**
  * Dominio oficial (de NEXT_PUBLIC_SITE_URL). Cualquier otra dirección que sirva la

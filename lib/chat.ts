@@ -4,10 +4,12 @@ import { INSURANCE_TYPES, type InsuranceType } from "@/types";
 /**
  * ASESOR VIRTUAL (chat con IA) — tipos y reglas compartidas entre el navegador y el servidor.
  *
- *   ChatWidget ─► POST /api/chat ─► server/assistant.ts ─► Anthropic (Claude Haiku 4.5)
- *        │
+ *   ChatWidget ─► POST /api/chat ─► server/assistant ─► Cloudflare Workers AI (env.AI)
+ *        │            (historial reciente + LeadState)
  *        └─ tarjeta de confirmación ─► POST /api/quote-requests (source = "asistente_ia")
  *
+ * LeadState: datos de la solicitud que el asistente va reuniendo (tipo de seguro y campos
+ * ya validados). Viaja con cada mensaje para que la IA "recuerde" sin reenviar toda la charla.
  * La conversación vive solo en la memoria de la página: no se guarda en el navegador
  * ni en la base de datos. Solo se guarda la solicitud cuando el cliente la confirma.
  */
@@ -44,11 +46,21 @@ export interface QuoteDraft {
 
 export type ChatAction = { type: "quote_draft"; draft: QuoteDraft } | { type: "whatsapp"; message: string };
 
+/** Lo que el asistente sabe de la solicitud en curso. El servidor lo vuelve a validar en cada mensaje. */
+export interface LeadState {
+  insuranceType: InsuranceType | null;
+  /** Campos del formulario ya validados (nombres internos de lib/forms/quoteForms.ts). */
+  fields: Record<string, string>;
+  /** Información adicional útil (cobertura de interés, uso del vehículo…). */
+  notes: string;
+}
+
+export const EMPTY_LEAD: LeadState = { insuranceType: null, fields: {}, notes: "" };
+
 export interface ChatResponse {
   reply: string;
   action?: ChatAction;
-  /** "mock" = respuestas de prueba locales; "missing" = falta ANTHROPIC_API_KEY (desarrollo). */
-  mode?: "live" | "mock" | "missing";
+  lead: LeadState;
 }
 
 /** Quita caracteres de control y espacios sobrantes. */
@@ -60,8 +72,20 @@ export function cleanText(value: string): string {
     .trim();
 }
 
+const leadSchema = z
+  .object({
+    insuranceType: z.enum(INSURANCE_TYPES).nullable().catch(null),
+    fields: z
+      .record(z.string().regex(/^[a-zA-Z]{2,30}$/), z.string().max(200).transform(cleanText))
+      .refine((r) => Object.keys(r).length <= 25)
+      .catch({}),
+    notes: z.string().max(600).transform(cleanText).catch(""),
+  })
+  .catch(EMPTY_LEAD);
+
 /** Cuerpo de POST /api/chat. Alterna visitante/asistente y termina con un mensaje del visitante. */
 export const chatRequestSchema = z.object({
+  lead: leadSchema.optional().transform((v) => v ?? EMPTY_LEAD),
   messages: z
     .array(
       z.object({

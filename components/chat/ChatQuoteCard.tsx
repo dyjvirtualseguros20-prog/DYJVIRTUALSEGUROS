@@ -92,6 +92,7 @@ export function ChatQuoteCard({
               type="checkbox"
               checked={consent}
               onChange={(e) => setConsent(e.target.checked)}
+              aria-label="Acepto la Política de Tratamiento de Datos Personales"
               className="mt-0.5 size-4 shrink-0 accent-brand-600"
             />
             <span>

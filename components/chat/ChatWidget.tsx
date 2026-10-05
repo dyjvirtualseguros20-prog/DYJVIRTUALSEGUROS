@@ -3,7 +3,15 @@
 import Link from "next/link";
 import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { siteConfig } from "@/config/site";
-import { CHAT_LIMITS, QUICK_OPTIONS, type ChatAction, type ChatMessage, type ChatResponse } from "@/lib/chat";
+import {
+  CHAT_LIMITS,
+  EMPTY_LEAD,
+  QUICK_OPTIONS,
+  type ChatAction,
+  type ChatMessage,
+  type ChatResponse,
+  type LeadState,
+} from "@/lib/chat";
 import { cn } from "@/lib/format";
 import { whatsappUrl } from "@/lib/whatsapp";
 import type { QuoteRequestReceipt } from "@/types";
@@ -31,6 +39,8 @@ const initialMessages = () => [msg({ role: "assistant", content: GREETING, local
 export function ChatWidget({ whatsappNumber, advisorName }: { whatsappNumber: string; advisorName: string | null }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<UiMessage[]>(initialMessages);
+  // Datos de la solicitud que el asistente ya reunió (los valida el servidor en cada mensaje).
+  const [lead, setLead] = useState<LeadState>(EMPTY_LEAD);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [showTip, setShowTip] = useState(false);
@@ -76,6 +86,7 @@ export function ChatWidget({ whatsappNumber, advisorName }: { whatsappNumber: st
   function closeChat() {
     setOpen(false);
     setMessages(initialMessages());
+    setLead(EMPTY_LEAD);
     setInput("");
   }
 
@@ -111,10 +122,11 @@ export function ChatWidget({ whatsappNumber, advisorName }: { whatsappNumber: st
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: payload }),
+        body: JSON.stringify({ messages: payload, lead }),
       });
       const data = (await response.json().catch(() => null)) as (ChatResponse & { error?: string }) | null;
       if (!response.ok || !data?.reply) throw new Error(data?.error ?? "");
+      if (data.lead) setLead(data.lead);
       setMessages((list) => [...list, msg({ role: "assistant", content: data.reply, action: data.action })]);
     } catch (error) {
       // El mensaje que falló sale del historial para no romper el orden de la conversación.
@@ -147,6 +159,8 @@ export function ChatWidget({ whatsappNumber, advisorName }: { whatsappNumber: st
   }
 
   function onSent(receipt: QuoteRequestReceipt) {
+    // Solicitud registrada: una nueva cotización empieza de cero.
+    setLead(EMPTY_LEAD);
     setMessages((list) => [
       ...list,
       msg({

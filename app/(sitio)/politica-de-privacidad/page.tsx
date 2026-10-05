@@ -249,11 +249,11 @@ export default function PrivacyPage() {
           <p>Así funciona y así tratamos tu información:</p>
           <ul>
             <li>
-              Los mensajes que escribes se procesan con <strong>Anthropic</strong> (Claude), un proveedor de
-              inteligencia artificial ubicado en Estados Unidos, que actúa como encargado del tratamiento. Por eso, el
-              contenido de tus mensajes se transmite fuera de Colombia solo para generar las respuestas. Según sus
-              condiciones comerciales, Anthropic no usa esos datos para entrenar sus modelos y puede conservarlos
-              temporalmente por motivos de seguridad, de acuerdo con sus propias políticas.
+              Los mensajes que escribes se procesan con <strong>Cloudflare Workers AI</strong>, el servicio de
+              inteligencia artificial de Cloudflare, Inc. (empresa con sede en Estados Unidos), que actúa como encargado
+              del tratamiento. Los modelos se ejecutan en su red de servidores, que puede estar fuera de Colombia, por
+              lo que el contenido de tus mensajes puede transmitirse al exterior solo para generar las respuestas, de
+              acuerdo con las políticas de privacidad de Cloudflare.
             </li>
             <li>
               <strong>No guardamos las conversaciones</strong> en nuestra base de datos ni en tu navegador. La
@@ -332,8 +332,8 @@ export default function PrivacyPage() {
                 </li>
                 <li>WhatsApp (Meta), cuando la comunicación se realiza por ese medio.</li>
                 <li>
-                  Anthropic: procesamiento de los mensajes del asesor virtual con inteligencia artificial (punto 5). Sus
-                  servidores están en Estados Unidos.
+                  Cloudflare, Inc. (Workers AI): procesamiento de los mensajes del asesor virtual con inteligencia
+                  artificial (punto 5). Su red de servidores puede estar fuera de Colombia.
                 </li>
               </ul>
             </li>

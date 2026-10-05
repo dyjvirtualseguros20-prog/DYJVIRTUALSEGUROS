@@ -118,23 +118,29 @@ El enlace funciona en menos de un minuto. Migración: `supabase/migrations/0002_
 
 ## Asesor virtual con IA (fase 1)
 
-Botón flotante encima del de WhatsApp que abre un chat con **Claude Haiku 4.5** (Anthropic).
+Botón flotante encima del de WhatsApp que abre un chat con un modelo de **Cloudflare Workers AI** (`@cf/meta/llama-3.3-70b-instruct-fp8-fast`).
 
 ```
-ChatWidget ─► POST /api/chat ─► server/assistant.ts ─► Anthropic (solo desde el servidor)
-     └─ tarjeta de confirmación ─► POST /api/quote-requests (source = "asistente_ia")
+ChatWidget ─► POST /api/chat ─► server/assistant (orquestador) ─► server/ai/workersAi.ts (env.AI)
+   │            mensajes recientes + LeadState            │
+   │                                                       └─ server/assistant/lead.ts: valida cada dato
+   └─ tarjeta de confirmación ─► POST /api/quote-requests (source = "asistente_ia")
+                                     └─ futuro: server/insurers (APIs de aseguradoras)
 ```
 
+- **IA real, sin respuestas fijas.** El modelo responde en JSON: mensaje, intención, tipo de seguro y los datos del último mensaje. El servidor valida cada dato con las reglas de los formularios y guarda el progreso en `LeadState`, que viaja con cada mensaje (la IA "recuerda" sin reenviar toda la charla).
 - Responde solo con la información de la web (`config/`, `lib/insurance.ts`, campos de `lib/forms/quoteForms.ts`). No da precios ni inventa condiciones.
-- Cuando tiene los datos, muestra un resumen validado con las mismas reglas de los formularios. El cliente acepta la política y envía: la solicitud se guarda en `quote_requests` con `source = 'asistente_ia'` y el asesor del enlace (cookie), igual que un formulario.
-- **No se guardan conversaciones** (solo viven en la memoria de la página).
-- Límites: 1.000 caracteres por mensaje, 30 mensajes por conversación, 20 mensajes por visitante cada 10 minutos (más 10 por minuto con el binding `CHAT_RATE_LIMITER` de Cloudflare).
-- Migración: `supabase/migrations/0003_request_source.sql` (columna `source`). En `/admin` las solicitudes del chat llevan la etiqueta «Asistente IA».
+- Con todos los datos válidos muestra un resumen; el cliente acepta la política y envía. Se guarda en `quote_requests` con `source = 'asistente_ia'` y el asesor del enlace (cookie).
+- Accidente o "quiero hablar con una persona" → botón de WhatsApp del asesor del enlace (o el oficial).
+- **No se guardan conversaciones.** Límites: 1.000 caracteres por mensaje, 30 mensajes por conversación, 20 por visitante cada 10 minutos (+10/min con `CHAT_RATE_LIMITER`).
+- Cambiar de proveedor de IA: otra implementación de `LanguageModel` en `server/ai/`.
 
-**Configuración**
+**Configuración:** ninguna clave. El binding `"ai": { "binding": "AI" }` está en `wrangler.jsonc`.
 
-| Variable            | Dónde                                                                                                                 | Nota                                                                                                           |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `ANTHROPIC_API_KEY` | `.env.local` (local) · Cloudflare → Workers → dyj-virtual-seguros → Configuración → Variables y secretos → **Secret** | Obligatoria. Sin ella, en producción el botón no aparece.                                                      |
-| `ANTHROPIC_MODEL`   | opcional                                                                                                              | Por defecto `claude-haiku-4-5-20251001`.                                                                       |
-| `ASSISTANT_MOCK=1`  | solo `.env.local`                                                                                                     | Respuestas de prueba sin IA (escribe «demo vehiculos»). Se ignora si hay clave y nunca funciona en producción. |
+| Dónde                   | Cómo funciona                                                                                  |
+| ----------------------- | ---------------------------------------------------------------------------------------------- |
+| Cloudflare (producción) | El binding existe al publicar.                                                                 |
+| Local (`npm run dev`)   | `next.config.ts` conecta el binding con `npx wrangler login`. Usa el mismo cupo de Workers AI. |
+| Vercel (respaldo)       | No hay Workers AI: el botón no aparece.                                                        |
+
+Opcional: `WORKERS_AI_MODEL` para probar otro modelo. Costo: 10.000 neuronas diarias gratis (≈ 60 mensajes con el modelo por defecto); con Workers Paid, US$0,011 por 1.000 neuronas (≈ US$0,0016 por mensaje).
