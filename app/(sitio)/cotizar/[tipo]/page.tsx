@@ -40,7 +40,7 @@ function StructuredData({ product }: { product: InsuranceProduct }) {
       serviceType: product.name,
       description: product.info.intro,
       url: new URL(path, siteUrl).toString(),
-      provider: { "@type": "InsuranceAgency", "@id": ORGANIZATION_ID, name: siteConfig.legalName, url: siteUrl },
+      provider: { "@type": "InsuranceAgency", "@id": ORGANIZATION_ID, name: siteConfig.name, url: siteUrl },
       areaServed: AREA_SERVED,
     },
     breadcrumbs([

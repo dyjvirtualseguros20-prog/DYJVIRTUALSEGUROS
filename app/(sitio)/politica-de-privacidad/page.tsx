@@ -39,7 +39,9 @@ const SECTIONS = [
 ] as const;
 
 export default function PrivacyPage() {
-  const { contact, whatsapp, legalName, legal } = siteConfig;
+  const { contact, legalName, legal } = siteConfig;
+  // Los dos números oficiales de los asesores (llamadas y WhatsApp).
+  const phones = siteConfig.advisorLines.map((l) => l.display).join(" y ");
   const privacyEmail = legal.privacyEmail || contact.email;
 
   return (
@@ -73,8 +75,8 @@ export default function PrivacyPage() {
           <p>
             En {legalName} (en adelante, «la agencia», «nosotros») respetamos tu privacidad. Esta política explica qué
             datos personales recopilamos a través de este sitio web, para qué los usamos, con quién los compartimos y
-            cómo puedes ejercer tus derechos, de acuerdo con la Ley 1581 de 2012 y sus normas reglamentarias. Complementa
-            los <Link href="/terminos-y-condiciones">Términos y Condiciones</Link> del sitio.
+            cómo puedes ejercer tus derechos, de acuerdo con la Ley 1581 de 2012 y sus normas reglamentarias.
+            Complementa los <Link href="/terminos-y-condiciones">Términos y Condiciones</Link> del sitio.
           </p>
 
           <h2 id="responsable">1. Responsable del tratamiento</h2>
@@ -90,14 +92,15 @@ export default function PrivacyPage() {
               <strong>Representante legal:</strong> {dato(legal.legalRepresentative, "nombre del representante legal")}
             </li>
             <li>
-              <strong>Domicilio:</strong> {dato(legal.address, "dirección")}, {dato(legal.city, "ciudad")}, Colombia
-              (no es una oficina abierta al público)
+              <strong>Domicilio:</strong> {dato(legal.address, "dirección")}, {dato(legal.city, "ciudad")}, Colombia (no
+              es una oficina abierta al público)
             </li>
             <li>
-              <strong>Teléfono y WhatsApp:</strong> {whatsapp.display}
+              <strong>Teléfonos y WhatsApp de los asesores:</strong> {phones}
             </li>
             <li>
-              <strong>Correo para temas de datos personales:</strong> {dato(privacyEmail, "correo para datos personales")}
+              <strong>Correo para temas de datos personales:</strong>{" "}
+              {dato(privacyEmail, "correo para datos personales")}
             </li>
           </ul>
           <p>
@@ -165,7 +168,9 @@ export default function PrivacyPage() {
             <li>Atender tus consultas, reclamos y solicitudes sobre tus datos.</li>
             <li>Proteger el sitio contra usos indebidos y cumplir obligaciones legales.</li>
           </ul>
-          <p>No usaremos tus datos para fines distintos sin informarte y, cuando la ley lo exija, sin tu autorización.</p>
+          <p>
+            No usaremos tus datos para fines distintos sin informarte y, cuando la ley lo exija, sin tu autorización.
+          </p>
 
           <h2 id="autorizaciones">4. Tus autorizaciones</h2>
           <p>Antes de enviar una solicitud te pedimos tres autorizaciones separadas, para que sepas qué aceptas:</p>
@@ -233,15 +238,15 @@ export default function PrivacyPage() {
               marca de que llegó por el asesor virtual.
             </li>
             <li>
-              El asesor virtual puede equivocarse, no da precios ni confirma aprobaciones: un asesor de la agencia revisa
-              cada solicitud.
+              El asesor virtual puede equivocarse, no da precios ni confirma aprobaciones: un asesor de la agencia
+              revisa cada solicitud.
             </li>
           </ul>
 
           <h2 id="contacto">7. Cómo te contactamos (incluido WhatsApp)</h2>
           <p>
             Usaremos tus datos de contacto <strong>únicamente</strong> para comunicarnos sobre tu solicitud y el seguro
-            relacionado: por llamada, por WhatsApp (desde {whatsapp.display} o el número de tu asesor) o por correo
+            relacionado: por llamada, por WhatsApp (desde los números de nuestros asesores, {phones}) o por correo
             electrónico. WhatsApp es un servicio de Meta, sujeto a sus propias políticas. Si prefieres que no te
             contactemos por algún medio, o que dejemos de hacerlo, solo tienes que decírnoslo.
           </p>
@@ -291,8 +296,8 @@ export default function PrivacyPage() {
             </li>
           </ul>
           <p>
-            Por esto, tus datos pueden almacenarse o procesarse fuera de Colombia. Al darnos tus autorizaciones
-            aceptas esta transmisión para las finalidades de esta política. También compartimos datos con{" "}
+            Por esto, tus datos pueden almacenarse o procesarse fuera de Colombia. Al darnos tus autorizaciones aceptas
+            esta transmisión para las finalidades de esta política. También compartimos datos con{" "}
             <strong>aseguradoras</strong> (punto 5) y con <strong>autoridades</strong> cuando la ley o una orden
             competente lo exijan.
           </p>
@@ -323,8 +328,8 @@ export default function PrivacyPage() {
                 : "conservamos tu solicitud solo mientras sea útil para atender tus consultas o retomar la cotización. Cuando deja de serlo, o cuando nos pidas eliminarla, la eliminamos o la anonimizamos."}
             </li>
             <li>
-              <strong>Si contratas un seguro:</strong> mientras dure la relación y por el tiempo adicional que exijan las
-              normas aplicables a la intermediación de seguros.
+              <strong>Si contratas un seguro:</strong> mientras dure la relación y por el tiempo adicional que exijan
+              las normas aplicables a la intermediación de seguros.
             </li>
             <li>
               <strong>Registro de autorizaciones:</strong> mientras sea necesario para demostrar que nos diste tu
@@ -370,8 +375,8 @@ export default function PrivacyPage() {
               <strong>Acceder gratuitamente</strong> a tus datos.
             </li>
             <li>
-              <strong>Presentar quejas</strong> ante la Superintendencia de Industria y Comercio (SIC), después de agotar
-              la consulta o el reclamo ante nosotros.
+              <strong>Presentar quejas</strong> ante la Superintendencia de Industria y Comercio (SIC), después de
+              agotar la consulta o el reclamo ante nosotros.
             </li>
           </ul>
 
@@ -381,7 +386,7 @@ export default function PrivacyPage() {
               <strong>Correo electrónico:</strong> {dato(privacyEmail, "correo para datos personales")}
             </li>
             <li>
-              <strong>WhatsApp:</strong> {whatsapp.display}
+              <strong>Teléfono o WhatsApp:</strong> {phones}
             </li>
             <li>
               <strong>Responsable de atender tu solicitud:</strong>{" "}
@@ -395,14 +400,14 @@ export default function PrivacyPage() {
           </p>
           <ul>
             <li>
-              <strong>Consultas:</strong> respondemos en máximo 10 días hábiles. Si no es posible, te avisaremos el motivo
-              y responderemos a más tardar 5 días hábiles después.
+              <strong>Consultas:</strong> respondemos en máximo 10 días hábiles. Si no es posible, te avisaremos el
+              motivo y responderemos a más tardar 5 días hábiles después.
             </li>
             <li>
               <strong>Reclamos</strong> (corrección, actualización, supresión o revocatoria): respondemos en máximo 15
               días hábiles. Si el reclamo está incompleto, te pediremos completarlo dentro de los 5 días siguientes; si
-              no lo haces en 2 meses, se entenderá desistido. Si no podemos responder a tiempo, te avisaremos el motivo y
-              responderemos a más tardar 8 días hábiles después.
+              no lo haces en 2 meses, se entenderá desistido. Si no podemos responder a tiempo, te avisaremos el motivo
+              y responderemos a más tardar 8 días hábiles después.
             </li>
           </ul>
 

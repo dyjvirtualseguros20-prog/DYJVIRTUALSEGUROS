@@ -37,7 +37,9 @@ const SECTIONS = [
 ] as const;
 
 export default function TermsPage() {
-  const { legalName, name, legal, whatsapp, contact } = siteConfig;
+  const { legalName, name, legal, contact } = siteConfig;
+  // Los dos números oficiales de los asesores (llamadas y WhatsApp).
+  const phones = siteConfig.advisorLines.map((l) => l.display).join(" y ");
 
   return (
     <section className="pt-28 pb-24 sm:pt-36">
@@ -74,9 +76,9 @@ export default function TermsPage() {
           </p>
           <p>
             Somos una <strong>agencia e intermediario de seguros</strong>: te asesoramos, te ayudamos a solicitar
-            cotizaciones y a comparar alternativas de distintas compañías aseguradoras. <strong>No somos una
-            aseguradora</strong>: no emitimos pólizas ni pagamos siniestros; eso lo hace la compañía aseguradora que
-            elijas.
+            cotizaciones y a comparar alternativas de distintas compañías aseguradoras.{" "}
+            <strong>No somos una aseguradora</strong>: no emitimos pólizas ni pagamos siniestros; eso lo hace la
+            compañía aseguradora que elijas.
           </p>
 
           <h2 id="aceptacion">2. Aceptación de estos términos</h2>
@@ -98,8 +100,8 @@ export default function TermsPage() {
 
           <h2 id="cotizador">4. Cotizador y solicitudes de cotización</h2>
           <p>
-            Con el cotizador (formularios o asesor virtual) nos envías una <strong>solicitud de cotización</strong>.
-            Te asignamos un número de referencia (por ejemplo, «SOL-XXXXXX») y un asesor revisa tu caso, consulta
+            Con el cotizador (formularios o asesor virtual) nos envías una <strong>solicitud de cotización</strong>. Te
+            asignamos un número de referencia (por ejemplo, «SOL-XXXXXX») y un asesor revisa tu caso, consulta
             alternativas con las aseguradoras y te contacta.
           </p>
           <ul>
@@ -150,8 +152,8 @@ export default function TermsPage() {
           <p>
             Trabajamos con diferentes compañías aseguradoras y te presentamos alternativas para que compares. Las
             comparaciones se basan en la información que entregan las aseguradoras: no alteramos sus precios ni sus
-            condiciones, no inventamos coberturas y no afirmamos que una compañía sea «la mejor» sin una base
-            objetiva. La elección final es tuya, con la asesoría que necesites.
+            condiciones, no inventamos coberturas y no afirmamos que una compañía sea «la mejor» sin una base objetiva.
+            La elección final es tuya, con la asesoría que necesites.
           </p>
 
           <h2 id="asistente">8. Asesor virtual con inteligencia artificial</h2>
@@ -177,25 +179,26 @@ export default function TermsPage() {
 
           <h2 id="whatsapp">9. WhatsApp y servicios de terceros</h2>
           <p>
-            Puedes comunicarte con nosotros por WhatsApp ({whatsapp.display}). Al hacerlo usas un servicio de Meta,
-            sujeto a sus propios términos y políticas. El sitio también usa servicios de terceros para funcionar (por
-            ejemplo, alojamiento, base de datos e inteligencia artificial); los detallamos en la{" "}
+            Puedes llamarnos o escribirnos por WhatsApp a los números de nuestros asesores ({phones}); ambos atienden
+            información y cotizaciones. Al hacerlo usas un servicio de Meta, sujeto a sus propios términos y políticas.
+            El sitio también usa servicios de terceros para funcionar (por ejemplo, alojamiento, base de datos e
+            inteligencia artificial); los detallamos en la{" "}
             <Link href="/politica-de-privacidad#terceros">Política de Tratamiento de Datos</Link>. No somos responsables
             de las fallas o cambios de esos servicios, aunque trabajamos para que el sitio funcione correctamente.
           </p>
 
           <h2 id="asesores">10. Enlaces de asesores</h2>
           <p>
-            Si entras por el enlace personal de un asesor (por ejemplo, {new URL(siteUrl).host}/nombre), tu
-            solicitud queda asignada a ese asesor y verás su contacto. Esa asignación la hace el sistema y se recuerda
-            durante 30 días en tu navegador. Siempre puedes pedir que te atienda otra persona del equipo.
+            Si entras por el enlace personal de un asesor (por ejemplo, {new URL(siteUrl).host}/nombre), tu solicitud
+            queda asignada a ese asesor y verás su contacto. Esa asignación la hace el sistema y se recuerda durante 30
+            días en tu navegador. Siempre puedes pedir que te atienda otra persona del equipo.
           </p>
 
           <h2 id="propiedad">11. Propiedad intelectual y marcas</h2>
           <p>
             Los textos, el diseño, el logo y el nombre {name} pertenecen a {legalName} o se usan con autorización. No
-            puedes copiarlos ni usarlos con fines comerciales sin nuestro permiso. Los nombres y logos de las
-            compañías aseguradoras pertenecen a sus respectivos titulares y se mencionan solo para identificarlas.
+            puedes copiarlos ni usarlos con fines comerciales sin nuestro permiso. Los nombres y logos de las compañías
+            aseguradoras pertenecen a sus respectivos titulares y se mencionan solo para identificarlas.
           </p>
 
           <h2 id="limitaciones">12. Limitaciones del servicio</h2>
@@ -217,8 +220,8 @@ export default function TermsPage() {
           <h2 id="datos">13. Tratamiento de datos personales</h2>
           <p>
             Tratamos tus datos según nuestra{" "}
-            <Link href="/politica-de-privacidad">Política de Tratamiento de Datos Personales</Link>. Antes de enviar
-            una solicitud te pedimos autorizaciones separadas: leer la política y estos términos, usar tus datos para
+            <Link href="/politica-de-privacidad">Política de Tratamiento de Datos Personales</Link>. Antes de enviar una
+            solicitud te pedimos autorizaciones separadas: leer la política y estos términos, usar tus datos para
             gestionar tu cotización y —de forma opcional— compartir los datos indispensables con aseguradoras.
           </p>
 
@@ -238,7 +241,7 @@ export default function TermsPage() {
           <h2 id="contacto">16. Contacto</h2>
           <ul>
             <li>
-              <strong>WhatsApp:</strong> {whatsapp.display}
+              <strong>Teléfono o WhatsApp:</strong> {phones}
             </li>
             <li>
               <strong>Correo electrónico:</strong> {contact.email}

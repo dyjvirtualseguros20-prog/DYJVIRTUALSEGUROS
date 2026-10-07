@@ -30,8 +30,19 @@ export const siteConfig = {
   },
 
   /**
-   * WHATSAPP
-   * `number`: solo dígitos, con indicativo de país (57 = Colombia), sin "+" ni espacios.
+   * NÚMEROS OFICIALES DE LOS ASESORES (llamadas y WhatsApp).
+   * Los dos son oficiales y atienden información y cotizaciones; ninguno es principal.
+   * Se muestran juntos en Contacto, en el pie de página, en el menú del celular y en los documentos legales.
+   * `number`: solo dígitos con indicativo (57); `display`: como se ve en la web.
+   */
+  advisorLines: [
+    { number: "573102892285", display: "+57 310 289 2285" },
+    { number: "573118023725", display: "+57 311 802 3725" },
+  ],
+
+  /**
+   * WHATSAPP del botón flotante y de los enlaces generales (cuando la visita no llega por el
+   * enlace de un asesor). `number`: solo dígitos, con indicativo de país, sin "+" ni espacios.
    */
   whatsapp: {
     number: "573118023725",
@@ -41,7 +52,7 @@ export const siteConfig = {
 
   /** DATOS DE CONTACTO (déjalos vacíos si aún no los tienes). */
   contact: {
-    /** Teléfono principal (se usa el mismo número de WhatsApp). */
+    /** Teléfono de los enlaces generales (el mismo del botón flotante de WhatsApp). */
     phone: "+57 311 802 3725",
     phoneHref: "+573118023725",
     /** Teléfono adicional, p. ej. "+57 601 000 0000". */
@@ -89,12 +100,12 @@ export const siteConfig = {
     /** Proveedor de alojamiento del sitio. */
     hostingProvider: "Cloudflare, Inc.",
     /** Fecha de la última actualización de la política (AAAA-MM-DD). */
-    privacyPolicyUpdated: "2026-10-05",
+    privacyPolicyUpdated: "2026-10-07",
     /** Versión de la política: se guarda con cada autorización. Súbela si cambias el texto. */
-    privacyPolicyVersion: "2.0",
+    privacyPolicyVersion: "2.1",
     /** Términos y condiciones: fecha y versión (se guardan con cada solicitud). */
-    termsUpdated: "2026-10-05",
-    termsVersion: "1.0",
+    termsUpdated: "2026-10-07",
+    termsVersion: "1.1",
   },
 
   /** REDES SOCIALES: escribe la URL completa. Las vacías no se muestran. */

@@ -49,3 +49,10 @@ export function contactInfo(advisor: Advisor | null): ContactInfo {
     phoneHref: `+${phoneIntl}`,
   };
 }
+
+/** Números oficiales de los asesores, con sus enlaces de llamada y de WhatsApp. */
+export const ADVISOR_LINES = siteConfig.advisorLines.map((line) => ({
+  ...line,
+  telHref: `tel:+${line.number}`,
+  whatsappHref: whatsappUrl(undefined, line.number),
+}));

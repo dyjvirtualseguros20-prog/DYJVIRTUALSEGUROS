@@ -5,9 +5,10 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { mainNav } from "@/config/navigation";
 import { cn } from "@/lib/format";
+import { ADVISOR_LINES } from "@/lib/whatsapp";
 import { ButtonLink } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
-import { Icon } from "@/components/ui/Icon";
+import { Icon, WhatsAppIcon } from "@/components/ui/Icon";
 import { Logo } from "@/components/ui/Logo";
 
 export function Header() {
@@ -88,7 +89,7 @@ export function Header() {
       <div
         id="menu-movil"
         className={cn(
-          "fixed inset-x-0 top-18 bottom-0 z-40 bg-white transition-all duration-300 lg:hidden",
+          "fixed inset-x-0 top-18 bottom-0 z-[45] bg-white transition-all duration-300 lg:hidden",
           open ? "visible opacity-100" : "invisible opacity-0",
         )}
       >
@@ -109,6 +110,28 @@ export function Header() {
               ))}
             </ul>
           </nav>
+          {/* Los dos números oficiales: fáciles de tocar desde el celular. */}
+          <div className="mt-6 rounded-2xl bg-slate-50 p-4">
+            <p className="text-sm font-semibold text-ink">Habla con uno de nuestros asesores</p>
+            <ul className="mt-3 space-y-2">
+              {ADVISOR_LINES.map((line) => (
+                <li key={line.number} className="flex items-center justify-between gap-3">
+                  <a href={line.telHref} className="py-1.5 text-base font-bold text-brand-700">
+                    📞 {line.display}
+                  </a>
+                  <a
+                    href={line.whatsappHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`WhatsApp ${line.display}`}
+                    className="flex size-10 items-center justify-center rounded-full bg-whatsapp text-white"
+                  >
+                    <WhatsAppIcon className="size-5" />
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
           <ButtonLink href="/cotizar" size="lg" className="mt-auto w-full" onClick={() => setOpen(false)}>
             Cotizar ahora
           </ButtonLink>

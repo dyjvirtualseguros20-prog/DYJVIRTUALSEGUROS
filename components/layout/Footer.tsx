@@ -2,9 +2,10 @@ import Link from "next/link";
 import { mainNav } from "@/config/navigation";
 import { siteConfig } from "@/config/site";
 import { INSURANCE_PRODUCTS } from "@/lib/insurance";
-import { whatsappUrl } from "@/lib/whatsapp";
+import { ADVISOR_LINES, whatsappUrl } from "@/lib/whatsapp";
 import { getCurrentContact } from "@/server/advisors";
 import { Container } from "@/components/ui/Container";
+import { WhatsAppIcon } from "@/components/ui/Icon";
 import { Logo } from "@/components/ui/Logo";
 import { SocialLinks } from "./SocialLinks";
 
@@ -19,6 +20,7 @@ export async function Footer() {
         <div className="space-y-4">
           <Logo tone="light" />
           <p className="max-w-xs text-sm">{siteConfig.description}</p>
+          <p className="text-xs text-brand-200/70">{siteConfig.legalName}</p>
           <SocialLinks tone="light" />
         </div>
 
@@ -61,17 +63,37 @@ export async function Footer() {
         <div>
           <p className="mb-4 text-sm font-bold text-white">Contacto</p>
           <ul className="space-y-2.5 text-sm">
-            <li>
-              <a
-                href={whatsappUrl(undefined, current.whatsappNumber)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-white"
-              >
-                WhatsApp: {current.whatsappDisplay}
-                {current.advisor ? ` (${current.advisor.name})` : ""}
-              </a>
-            </li>
+            <li className="text-white">Habla con uno de nuestros asesores:</li>
+            {ADVISOR_LINES.map((line) => (
+              <li key={line.number} className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <a href={line.telHref} className="font-semibold text-white hover:underline">
+                  📞 {line.display}
+                </a>
+                <a
+                  href={line.whatsappHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`WhatsApp ${line.display}`}
+                  className="inline-flex items-center gap-1 hover:text-white"
+                >
+                  <WhatsAppIcon className="size-4" />
+                  WhatsApp
+                </a>
+              </li>
+            ))}
+            {/* Asesor del enlace con un número propio (no oficial): se conserva su contacto. */}
+            {current.advisor && !ADVISOR_LINES.some((l) => l.number === current.whatsappNumber) && (
+              <li>
+                <a
+                  href={whatsappUrl(undefined, current.whatsappNumber)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-white"
+                >
+                  WhatsApp: {current.whatsappDisplay} ({current.advisor.name})
+                </a>
+              </li>
+            )}
             {contact.secondaryPhone && <li>Teléfono: {contact.secondaryPhone}</li>}
             {contact.email && (
               <li>
@@ -90,7 +112,7 @@ export async function Footer() {
       <div className="border-t border-white/10">
         <Container className="flex flex-col gap-2 py-6 text-xs sm:flex-row sm:items-center sm:justify-between">
           <p>
-            © {year} {siteConfig.legalName}. Todos los derechos reservados.
+            © {year} {siteConfig.legalName} Todos los derechos reservados.
           </p>
           <p className="text-brand-200/60">
             Cotizar no significa contratar: cada cotización está sujeta a las condiciones de la aseguradora.

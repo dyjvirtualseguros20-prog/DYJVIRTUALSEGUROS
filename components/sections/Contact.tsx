@@ -1,5 +1,5 @@
 import { siteConfig } from "@/config/site";
-import { whatsappUrl } from "@/lib/whatsapp";
+import { ADVISOR_LINES, whatsappUrl, type ContactInfo } from "@/lib/whatsapp";
 import { getCurrentContact } from "@/server/advisors";
 import { SocialLinks } from "@/components/layout/SocialLinks";
 import { ExternalButton } from "@/components/ui/Button";
@@ -9,12 +9,13 @@ import { Icon, WhatsAppIcon, type IconName } from "@/components/ui/Icon";
 
 export async function Contact() {
   const { contact } = siteConfig;
-  // WhatsApp y teléfono: los del asesor del enlace (/cristian, ...) o los de la empresa.
+  // Botón principal de WhatsApp: el del asesor del enlace (/cristian, ...) o el de la empresa.
   const current = await getCurrentContact();
+  // Asesor de un enlace cuyo número no es uno de los oficiales (asesores futuros): se muestra aparte.
+  const ownLine = current.advisor && !ADVISOR_LINES.some((l) => l.number === current.whatsappNumber) ? current : null;
 
   // Solo se muestran los datos que estén configurados en config/site.ts.
   const items: Array<{ icon: IconName; label: string; value: string; href?: string }> = [
-    { icon: "phone", label: "Teléfono", value: current.phoneDisplay, href: `tel:${current.phoneHref}` },
     ...(contact.secondaryPhone
       ? [{ icon: "phone" as const, label: "Teléfono adicional", value: contact.secondaryPhone }]
       : []),
@@ -47,8 +48,8 @@ export async function Contact() {
               id="contacto-title"
               align="left"
               eyebrow="Contacto"
-              title="Hablemos de lo que quieres proteger"
-              description="La forma más rápida de comunicarte con nosotros es WhatsApp. Escríbenos y un asesor te responderá."
+              title="¿Necesitas información o quieres cotizar tu seguro?"
+              description="Nuestro equipo está listo para ayudarte. Llámanos o escríbenos por WhatsApp y un asesor te atenderá."
             />
             <ExternalButton
               href={whatsappUrl(undefined, current.whatsappNumber)}
@@ -74,21 +75,52 @@ export async function Contact() {
                 </div>
               </li>
             )}
-            <li className="flex items-center gap-4 rounded-2xl bg-[#25d366]/10 p-5 ring-1 ring-[#25d366]/25">
-              <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-whatsapp text-white">
-                <WhatsAppIcon className="size-6" />
-              </span>
-              <div>
-                <p className="text-xs font-semibold tracking-wider text-slate-500 uppercase">WhatsApp</p>
-                <a
-                  href={whatsappUrl(undefined, current.whatsappNumber)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-lg font-bold text-ink hover:text-brand-700"
-                >
-                  {current.whatsappDisplay}
-                </a>
+            {/* Los dos números oficiales de los asesores: llamada y WhatsApp. */}
+            <li className="rounded-2xl bg-[#25d366]/10 p-5 ring-1 ring-[#25d366]/25">
+              <div className="flex items-center gap-4">
+                <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-whatsapp text-white">
+                  <Icon name="phone" className="size-6" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Asesores</p>
+                  <p className="text-lg font-bold text-ink">Habla con uno de nuestros asesores</p>
+                </div>
               </div>
+              <ul className="mt-4 space-y-3">
+                {[...ADVISOR_LINES, ...(ownLine ? [advisorLine(ownLine)] : [])].map((line) => (
+                  <li
+                    key={line.number}
+                    className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-xl bg-white px-4 py-3 ring-1 ring-[#25d366]/20"
+                  >
+                    <a href={line.telHref} className="text-lg font-bold text-ink hover:text-brand-700">
+                      📞 {line.display}
+                    </a>
+                    <span className="flex gap-2">
+                      <a
+                        href={line.telHref}
+                        aria-label={`Llamar al ${line.display}`}
+                        className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700"
+                      >
+                        <Icon name="phone" className="size-4" />
+                        Llamar
+                      </a>
+                      <a
+                        href={line.whatsappHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`Escribir por WhatsApp al ${line.display}`}
+                        className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-whatsapp px-4 text-sm font-semibold text-white hover:brightness-95"
+                      >
+                        <WhatsAppIcon className="size-4" />
+                        WhatsApp
+                      </a>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-3 text-sm text-slate-600">
+                Ambos números están disponibles para información y cotizaciones.
+              </p>
             </li>
             {items.map((item) => (
               <li key={item.label} className="flex items-center gap-4 rounded-2xl bg-slate-50 p-5">
@@ -113,4 +145,14 @@ export async function Contact() {
       </Container>
     </section>
   );
+}
+
+/** Número propio de un asesor del enlace que no es uno de los oficiales. */
+function advisorLine(contact: ContactInfo) {
+  return {
+    number: contact.whatsappNumber,
+    display: contact.whatsappDisplay,
+    telHref: `tel:${contact.phoneHref}`,
+    whatsappHref: whatsappUrl(undefined, contact.whatsappNumber),
+  };
 }

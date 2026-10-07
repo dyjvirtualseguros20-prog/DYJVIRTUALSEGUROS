@@ -28,16 +28,30 @@ function StructuredData() {
       "@context": "https://schema.org",
       "@type": "InsuranceAgency",
       "@id": ORGANIZATION_ID,
-      name: siteConfig.legalName,
-      alternateName: siteConfig.name,
+      // Marca como nombre principal; la razón social en legalName.
+      name: siteConfig.name,
+      legalName: siteConfig.legalName,
       description: siteConfig.description,
       url: siteUrl,
       logo: siteConfig.logo.src ? new URL(siteConfig.logo.src, siteUrl).toString() : undefined,
       image: new URL("/opengraph-image", siteUrl).toString(),
-      telephone: contact.phoneHref,
+      telephone: `+${siteConfig.advisorLines[0].number}`,
+      // Los dos números oficiales de los asesores (ninguno es principal).
+      contactPoint: siteConfig.advisorLines.map((line) => ({
+        "@type": "ContactPoint",
+        telephone: `+${line.number}`,
+        contactType: "customer service",
+        areaServed: "CO",
+        availableLanguage: "es",
+      })),
       email: contact.email || undefined,
       // Sin dirección de calle: la agencia no tiene oficina abierta al público.
-      address: { "@type": "PostalAddress", addressLocality: "Bogotá", addressRegion: "Bogotá D.C.", addressCountry: "CO" },
+      address: {
+        "@type": "PostalAddress",
+        addressLocality: "Bogotá",
+        addressRegion: "Bogotá D.C.",
+        addressCountry: "CO",
+      },
       areaServed: AREA_SERVED,
       knowsLanguage: "es",
       openingHoursSpecification: {
