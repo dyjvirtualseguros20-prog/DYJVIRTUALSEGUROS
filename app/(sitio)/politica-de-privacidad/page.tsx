@@ -86,10 +86,13 @@ export default function PrivacyPage() {
             </li>
             <li>
               <strong>NIT:</strong> {dato(legal.nit, "NIT")}
-              {legal.nitCheckDigit ? `-${legal.nitCheckDigit}` : <>-{dato("", "dígito de verificación")}</>}
+              {legal.nitCheckDigit ? `-${legal.nitCheckDigit}` : ""}
             </li>
             <li>
-              <strong>Representante legal:</strong> {dato(legal.legalRepresentative, "nombre del representante legal")}
+              <strong>
+                {legal.legalRepresentatives.length > 1 ? "Representantes legales" : "Representante legal"}:
+              </strong>{" "}
+              {dato(legal.legalRepresentatives.join(" y "), "representante legal")}
             </li>
             <li>
               <strong>Domicilio:</strong> {dato(legal.address, "dirección")}, {dato(legal.city, "ciudad")}, Colombia (no

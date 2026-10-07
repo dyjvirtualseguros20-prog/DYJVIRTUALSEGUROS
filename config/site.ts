@@ -88,10 +88,13 @@ export const siteConfig = {
   legal: {
     /** NIT sin dígito de verificación. */
     nit: "900788292",
-    /** Dígito de verificación del NIT (aparece en el RUT), p. ej. "7". */
+    /**
+     * Dígito de verificación del NIT (aparece en el RUT). Opcional: si está vacío, el NIT se
+     * muestra sin él (así lo indicó la empresa).
+     */
     nitCheckDigit: "",
-    /** Nombre del representante legal (aparece en el certificado de Cámara de Comercio). */
-    legalRepresentative: "",
+    /** Representantes legales (certificado de Cámara de Comercio). */
+    legalRepresentatives: ["Jeisson Steven Urrego Pérez", "Deisy Yomaira Urrego Pérez"],
     /** Dirección física del domicilio principal. */
     address: "Carrera 53 # 176-63",
     /** Ciudad del domicilio principal. */
@@ -110,10 +113,10 @@ export const siteConfig = {
     /** Fecha de la última actualización de la política (AAAA-MM-DD). */
     privacyPolicyUpdated: "2026-10-07",
     /** Versión de la política: se guarda con cada autorización. Súbela si cambias el texto. */
-    privacyPolicyVersion: "2.2",
+    privacyPolicyVersion: "2.3",
     /** Términos y condiciones: fecha y versión (se guardan con cada solicitud). */
     termsUpdated: "2026-10-07",
-    termsVersion: "1.2",
+    termsVersion: "1.3",
   },
 
   /** REDES SOCIALES: escribe la URL completa. Las vacías no se muestran. */

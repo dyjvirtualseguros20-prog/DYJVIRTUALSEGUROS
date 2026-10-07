@@ -70,9 +70,9 @@ export default function TermsPage() {
           <p>
             Este sitio web pertenece a <strong>{legalName}</strong> («la agencia», «nosotros»), identificada con NIT{" "}
             {legal.nit}
-            {legal.nitCheckDigit ? `-${legal.nitCheckDigit}` : <>-{dato("", "dígito de verificación")}</>}, con
-            domicilio en {legal.city}, Colombia. Representante legal:{" "}
-            {dato(legal.legalRepresentative, "nombre del representante legal")}.
+            {legal.nitCheckDigit ? `-${legal.nitCheckDigit}` : ""}, con domicilio en {legal.city}, Colombia.{" "}
+            {legal.legalRepresentatives.length > 1 ? "Representantes legales" : "Representante legal"}:{" "}
+            {dato(legal.legalRepresentatives.join(" y "), "representante legal")}.
           </p>
           <p>
             Somos una <strong>agencia e intermediario de seguros</strong>: te asesoramos, te ayudamos a solicitar
