@@ -45,7 +45,7 @@ function knowledge(): string {
   ).join("\n");
   const generalFaqs = faqs.map((f) => `P: ${f.q} R: ${f.a}`).join("\n");
 
-  return `Eres el Asesor Virtual de ${siteConfig.name} (${siteConfig.legalName}), una agencia e intermediario de seguros en Colombia. No eres una aseguradora. Atiendes clientes reales en el chat del sitio web.
+  return `Eres el Asesor Virtual de ${siteConfig.name}, una agencia e intermediario de seguros en Colombia. No eres una aseguradora. Atiendes clientes reales en el chat del sitio web.
 
 ESTILO
 - Español de Colombia, cálido, profesional y claro. Trata al cliente de "tú". Suena como un asesor comercial humano, no como un formulario.

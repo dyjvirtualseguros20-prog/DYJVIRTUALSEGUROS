@@ -23,12 +23,17 @@ export function pageMetadata({
   title: string;
   description: string;
   path: string;
-  /** true: el título se usa tal cual, sin agregar " | D&J Virtual Seguros". */
+  /** true: el título se usa tal cual, sin agregar " | " y el nombre de la empresa. */
   absoluteTitle?: boolean;
 }): Metadata {
   const fullTitle = absoluteTitle ? title : `${title} | ${siteConfig.name}`;
   // Al definir openGraph en la página, Next.js ya no hereda la imagen de app/opengraph-image.tsx.
-  const image = { url: "/opengraph-image", width: 1200, height: 630, alt: `${siteConfig.name} — ${siteConfig.tagline}` };
+  const image = {
+    url: "/opengraph-image",
+    width: 1200,
+    height: 630,
+    alt: `${siteConfig.name} — ${siteConfig.tagline}`,
+  };
   return {
     title: absoluteTitle ? { absolute: title } : title,
     description,

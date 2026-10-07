@@ -37,7 +37,10 @@ export function Logo({ tone = "dark", className }: { tone?: "dark" | "light"; cl
       )}
       <span className="flex flex-col leading-tight">
         <span
-          className={cn("text-base font-extrabold tracking-tight whitespace-nowrap", light ? "text-white" : "text-ink")}
+          className={cn(
+            "text-base font-extrabold tracking-tight whitespace-nowrap max-[359px]:text-sm max-[359px]:whitespace-normal",
+            light ? "text-white" : "text-ink",
+          )}
         >
           {name}
         </span>

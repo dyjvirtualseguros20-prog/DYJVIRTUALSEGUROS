@@ -43,7 +43,7 @@ export async function Contact() {
     <section id="contacto" aria-labelledby="contacto-title" className="pb-24">
       <Container>
         <div className="grid gap-10 rounded-[2rem] bg-white p-6 shadow-lift ring-1 ring-slate-100 sm:p-10 lg:grid-cols-2 lg:p-14">
-          <div>
+          <div className="min-w-0">
             <SectionHeading
               id="contacto-title"
               align="left"
@@ -65,7 +65,7 @@ export async function Contact() {
             </div>
           </div>
 
-          <ul className="space-y-4 self-center">
+          <ul className="min-w-0 space-y-4 self-center">
             {current.advisor && (
               <li className="flex items-center gap-4 rounded-2xl bg-brand-50 p-5 ring-1 ring-brand-100">
                 <AdvisorAvatar advisor={current.advisor} />
@@ -95,7 +95,7 @@ export async function Contact() {
                     <a href={line.telHref} className="text-lg font-bold text-ink hover:text-brand-700">
                       📞 {line.display}
                     </a>
-                    <span className="flex gap-2">
+                    <span className="flex flex-wrap gap-2">
                       <a
                         href={line.telHref}
                         aria-label={`Llamar al ${line.display}`}

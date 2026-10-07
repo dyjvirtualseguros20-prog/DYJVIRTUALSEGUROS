@@ -37,7 +37,7 @@ const SECTIONS = [
 ] as const;
 
 export default function TermsPage() {
-  const { legalName, name, legal, contact } = siteConfig;
+  const { legalName, legal, contact } = siteConfig;
   // Los dos números oficiales de los asesores (llamadas y WhatsApp).
   const phones = siteConfig.advisorLines.map((l) => l.display).join(" y ");
 
@@ -68,8 +68,8 @@ export default function TermsPage() {
         <div className={LEGAL_PROSE}>
           <h2 id="quienes">1. Quiénes somos</h2>
           <p>
-            Este sitio web pertenece a <strong>{legalName}</strong> («{name}», «la agencia», «nosotros»), identificada
-            con NIT {legal.nit}
+            Este sitio web pertenece a <strong>{legalName}</strong> («la agencia», «nosotros»), identificada con NIT{" "}
+            {legal.nit}
             {legal.nitCheckDigit ? `-${legal.nitCheckDigit}` : <>-{dato("", "dígito de verificación")}</>}, con
             domicilio en {legal.city}, Colombia. Representante legal:{" "}
             {dato(legal.legalRepresentative, "nombre del representante legal")}.
@@ -196,7 +196,7 @@ export default function TermsPage() {
 
           <h2 id="propiedad">11. Propiedad intelectual y marcas</h2>
           <p>
-            Los textos, el diseño, el logo y el nombre {name} pertenecen a {legalName} o se usan con autorización. No
+            Los textos, el diseño, el logo y el nombre de {legalName} le pertenecen o se usan con autorización. No
             puedes copiarlos ni usarlos con fines comerciales sin nuestro permiso. Los nombres y logos de las compañías
             aseguradoras pertenecen a sus respectivos titulares y se mencionan solo para identificarlas.
           </p>

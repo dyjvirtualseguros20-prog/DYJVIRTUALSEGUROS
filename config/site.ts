@@ -7,10 +7,18 @@
  */
 
 export const siteConfig = {
-  /** Nombre comercial que se muestra en el encabezado, pie de página y SEO. */
-  name: "D&J Virtual Seguros",
-  /** Razón social completa (pie de página y datos estructurados). */
-  legalName: "D&J Virtual Seguros Ltda.",
+  /**
+   * Nombre de la empresa: se usa en toda la web (encabezado, pie de página, títulos, SEO y
+   * documentos legales). Es también su nombre legal completo.
+   */
+  name: "D&J Virtual Seguros Limitada",
+  /** Nombre legal completo (documentos legales, autorizaciones y datos estructurados). */
+  legalName: "D&J Virtual Seguros Limitada",
+  /**
+   * Versión corta, SOLO donde el espacio no alcanza (nombre de la app en el celular, subtítulo
+   * del chat) y como nombre alternativo para buscadores. No usarla para identificar a la empresa.
+   */
+  shortName: "D&J Virtual Seguros",
   /** Frase corta para SEO y redes sociales. */
   tagline: "Protegemos lo que más importa",
   description:
@@ -26,7 +34,7 @@ export const siteConfig = {
     src: "/logo.png",
     width: 692,
     height: 679,
-    alt: "Logo de D&J Virtual Seguros",
+    alt: "Logo de D&J Virtual Seguros Limitada",
   },
 
   /**
@@ -102,10 +110,10 @@ export const siteConfig = {
     /** Fecha de la última actualización de la política (AAAA-MM-DD). */
     privacyPolicyUpdated: "2026-10-07",
     /** Versión de la política: se guarda con cada autorización. Súbela si cambias el texto. */
-    privacyPolicyVersion: "2.1",
+    privacyPolicyVersion: "2.2",
     /** Términos y condiciones: fecha y versión (se guardan con cada solicitud). */
     termsUpdated: "2026-10-07",
-    termsVersion: "1.1",
+    termsVersion: "1.2",
   },
 
   /** REDES SOCIALES: escribe la URL completa. Las vacías no se muestran. */

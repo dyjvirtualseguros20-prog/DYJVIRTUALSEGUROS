@@ -20,7 +20,6 @@ export async function Footer() {
         <div className="space-y-4">
           <Logo tone="light" />
           <p className="max-w-xs text-sm">{siteConfig.description}</p>
-          <p className="text-xs text-brand-200/70">{siteConfig.legalName}</p>
           <SocialLinks tone="light" />
         </div>
 
@@ -112,7 +111,7 @@ export async function Footer() {
       <div className="border-t border-white/10">
         <Container className="flex flex-col gap-2 py-6 text-xs sm:flex-row sm:items-center sm:justify-between">
           <p>
-            © {year} {siteConfig.legalName} Todos los derechos reservados.
+            © {year} {siteConfig.legalName}. Todos los derechos reservados.
           </p>
           <p className="text-brand-200/60">
             Cotizar no significa contratar: cada cotización está sujeta a las condiciones de la aseguradora.

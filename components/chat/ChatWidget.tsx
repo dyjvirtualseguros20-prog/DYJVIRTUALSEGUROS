@@ -255,7 +255,7 @@ export function ChatWidget({ whatsappNumber, advisorName }: { whatsappNumber: st
           <div className="min-w-0 flex-1 leading-tight">
             <p className="font-bold">Asesor Virtual</p>
             <p className="truncate text-xs text-brand-100">
-              {advisorName ? `Con IA · Tu asesor: ${advisorName.split(/\s+/)[0]}` : `${siteConfig.name} · Con IA`}
+              {advisorName ? `Con IA · Tu asesor: ${advisorName.split(/\s+/)[0]}` : `${siteConfig.shortName} · Con IA`}
             </p>
           </div>
           <button
