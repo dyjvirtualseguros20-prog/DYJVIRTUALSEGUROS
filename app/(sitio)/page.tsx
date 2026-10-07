@@ -31,7 +31,6 @@ function StructuredData() {
       // Marca como nombre principal; la razón social en legalName.
       name: siteConfig.name,
       legalName: siteConfig.legalName,
-      alternateName: siteConfig.shortName,
       description: siteConfig.description,
       url: siteUrl,
       logo: siteConfig.logo.src ? new URL(siteConfig.logo.src, siteUrl).toString() : undefined,

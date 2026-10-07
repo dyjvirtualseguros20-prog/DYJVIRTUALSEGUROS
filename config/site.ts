@@ -14,11 +14,6 @@ export const siteConfig = {
   name: "D&J Virtual Seguros Limitada",
   /** Nombre legal completo (documentos legales, autorizaciones y datos estructurados). */
   legalName: "D&J Virtual Seguros Limitada",
-  /**
-   * Versión corta, SOLO donde el espacio no alcanza (nombre de la app en el celular, subtítulo
-   * del chat) y como nombre alternativo para buscadores. No usarla para identificar a la empresa.
-   */
-  shortName: "D&J Virtual Seguros",
   /** Frase corta para SEO y redes sociales. */
   tagline: "Protegemos lo que más importa",
   description:
