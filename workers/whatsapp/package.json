@@ -1,0 +1,17 @@
+{
+  "name": "dyj-whatsapp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Súper Asesor D&J por WhatsApp (fase de simulación). Usa el núcleo del Asesor IA de la web.",
+  "scripts": {
+    "check": "tsc --noEmit -p .",
+    "test": "node scripts/run-tests.mjs",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "postgres": "^3.4.9"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261009.1"
+  }
+}

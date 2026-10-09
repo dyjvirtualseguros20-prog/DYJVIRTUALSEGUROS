@@ -4,3 +4,4 @@ export * from "./insurer";
 export * from "./quote";
 export * from "./policy";
 export * from "./advisor";
+export * from "./conversation";

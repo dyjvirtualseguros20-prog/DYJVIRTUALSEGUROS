@@ -5,7 +5,14 @@ import { formatDateTime } from "@/lib/datetime";
 import { getProduct } from "@/lib/insurance";
 import { listAdvisors } from "@/server/advisors";
 import { listQuoteRequests } from "@/server/quoteRequests";
-import { isInsuranceType, isRequestStatus, NO_ADVISOR, type QuoteRequestFilters } from "@/types";
+import {
+  isInsuranceType,
+  isRequestStatus,
+  NO_ADVISOR,
+  REQUEST_SOURCES,
+  type QuoteRequestFilters,
+  type RequestSource,
+} from "@/types";
 import { RequestFilters } from "@/components/admin/RequestFilters";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { Container } from "@/components/ui/Container";
@@ -124,7 +131,7 @@ export default async function AdminRequestsPage({ searchParams }: Props) {
                     <td className="px-5 py-4 whitespace-nowrap text-slate-600">{formatDateTime(r.createdAt)}</td>
                     <td className="px-5 py-4 font-semibold text-ink">
                       {r.fullName}
-                      {r.source === "asistente_ia" && <SourceBadge />}
+                      {r.source !== "formulario" && <SourceBadge source={r.source} />}
                     </td>
                     <td className="px-5 py-4 text-slate-600">
                       <span className="inline-flex items-center gap-2">
@@ -157,7 +164,7 @@ export default async function AdminRequestsPage({ searchParams }: Props) {
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="truncate font-bold text-ink">{r.fullName}</p>
-                      {r.source === "asistente_ia" && <SourceBadge />}
+                      {r.source !== "formulario" && <SourceBadge source={r.source} />}
                       <p className="mt-0.5 font-mono text-xs text-brand-700">{r.reference}</p>
                     </div>
                     <StatusBadge status={r.status} />
@@ -196,11 +203,17 @@ export default async function AdminRequestsPage({ searchParams }: Props) {
   );
 }
 
-/** Marca las solicitudes que llegaron por el asesor virtual (las demás vienen del formulario). */
-function SourceBadge() {
+/** Marca las solicitudes que llegaron por el asesor virtual o por WhatsApp (las demás vienen del formulario). */
+function SourceBadge({ source }: { source: Exclude<RequestSource, "formulario"> }) {
   return (
-    <span className="mt-1 block w-fit rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-bold tracking-wide text-brand-700 ring-1 ring-brand-100">
-      Asistente IA
+    <span
+      className={
+        source === "whatsapp"
+          ? "mt-1 block w-fit rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold tracking-wide text-emerald-700 ring-1 ring-emerald-100"
+          : "mt-1 block w-fit rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-bold tracking-wide text-brand-700 ring-1 ring-brand-100"
+      }
+    >
+      {REQUEST_SOURCES[source]}
     </span>
   );
 }

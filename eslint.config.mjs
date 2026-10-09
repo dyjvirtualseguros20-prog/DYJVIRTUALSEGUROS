@@ -1,6 +1,6 @@
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
 
-const eslintConfig = [...nextVitals, ...nextTs, { ignores: [".next/**", "node_modules/**", "next-env.d.ts", ".open-next/**", ".wrangler/**"] }];
+const eslintConfig = [...nextVitals, ...nextTs, { ignores: [".next/**", "node_modules/**", "next-env.d.ts", ".open-next/**", ".wrangler/**", "workers/*/.test-build/**", "workers/*/.wrangler/**"] }];
 
 export default eslintConfig;

@@ -29,9 +29,11 @@ Next.js 16 (App Router, `proxy.ts`), React 19, TypeScript, Tailwind 4, Zod 4, Su
 - **Legal:** `/politica-de-privacidad` (v2.3) y `/terminos-y-condiciones` (v1.3). Tres autorizaciones separadas (A política y términos, B uso para la cotización — obligatorias; C envío a aseguradoras — opcional) registradas por el servidor en `quote_requests.consent`. El servidor bloquea afirmaciones de pólizas aprobadas/emitidas, garantías, «la mejor aseguradora» y precios inventados, y no guarda datos de salud.
 - **Aseguradoras (fase 2, sin conectar):** `server/insurers/` exige autorización C, envía solo los campos que cada aseguradora declara, valida respuestas; bitácora `insurer_transmissions`. La IA no puede disparar envíos.
 
+- **WhatsApp (fase 1, simulación — rama `whatsapp-fase-1`, sin publicar la web):** núcleo común del Asesor IA en `server/assistant/core.ts` (web y WhatsApp usan el mismo cerebro; intenciones cotizacion, informacion, accidente, renovacion, reclamacion, asesor_humano, otro; escalamiento a persona). Worker `dyj-whatsapp` en `workers/whatsapp/` (solo `POST /simular` con clave; sin `/webhook`; no envía mensajes reales). Tablas `chat_contacts`, `chat_conversations`, `chat_messages`, `chat_consents`; rol `wa_bot`. Panel `/admin/whatsapp`. Pruebas: `cd workers/whatsapp && node scripts/run-tests.mjs`. Punto de restauración: tag `respaldo-2026-10-09-antes-whatsapp` y `C:\Users\pinzo\respaldos-dyj\*.bundle`.
+
 ## Migraciones Supabase aplicadas
 
-`0001` solicitudes y admins · `0002` asesores · `0003` columna `source` · `0004` correo opcional solo para `asistente_ia` · `0005` `consent` + `insurer_transmissions` (copia previa en `supabase/backups/`).
+`0001` solicitudes y admins · `0002` asesores · `0003` columna `source` · `0004` correo opcional solo para `asistente_ia` · `0005` `consent` + `insurer_transmissions` (copia previa en `supabase/backups/`) · `0006` conversaciones de WhatsApp + `source = 'whatsapp'` (solo el rol `wa_bot` puede usarlo) (copia previa en `supabase/backups/2026-10-09_antes_de_0006.sql`).
 
 ## Cómo trabajar
 

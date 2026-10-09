@@ -1,0 +1,27 @@
+/**
+ * Worker dyj-whatsapp — FASE DE SIMULACIÓN.
+ * Independiente del Worker de la web (dyj-virtual-seguros): no tiene rutas ni dominio propio.
+ * Comparte el código del Asesor IA con la web (import "@/…" → raíz del proyecto).
+ */
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "dyj-whatsapp",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-06-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "tsconfig": "./tsconfig.json",
+  // El paquete "server-only" de Next.js no aplica fuera de Next: aquí se reemplaza por un módulo vacío.
+  "alias": { "server-only": "./src/server-only.ts" },
+  "workers_dev": true,
+  "ai": { "binding": "AI" },
+  // Supabase vía Hyperdrive (rol wa_bot, caché desactivada). Las credenciales están cifradas en Hyperdrive.
+  "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "b9bca5b7725a436488b6d46e7691db2a" }],
+  "observability": { "enabled": true },
+  "vars": {
+    "WHATSAPP_MODE": "simulacion",
+    // "" = las conversaciones llegan sin asesor (como en la web). Decisión pendiente del dueño.
+    "DEFAULT_ADVISOR_ID": "",
+    "SITE_URL": "https://dyjvirtualseguros.com",
+  },
+  // Secreto (con `wrangler secret put`, nunca aquí): SIMULATION_KEY
+}

@@ -4,9 +4,11 @@ import { revalidatePath } from "next/cache";
 import { redirect, unstable_rethrow } from "next/navigation";
 import { z } from "zod";
 import { fromLocalInputValue } from "@/lib/datetime";
+import { listAdvisors } from "@/server/advisors";
 import { signIn, signOut } from "@/server/auth";
+import { updateConversation } from "@/server/conversations";
 import { updateQuoteRequest } from "@/server/quoteRequests";
-import { REQUEST_STATUS_KEYS, type RequestStatus } from "@/types";
+import { CONVERSATION_STATUS_KEYS, REQUEST_STATUS_KEYS, type ConversationStatus, type RequestStatus } from "@/types";
 
 /* ─────────────────────────────── Sesión ─────────────────────────────── */
 
@@ -89,5 +91,55 @@ export async function updateRequestAction(id: string, _prev: UpdateState, formDa
 
   revalidatePath("/admin");
   revalidatePath(`/admin/solicitudes/${id}`);
+  return { ok: true, savedAt: Date.now() };
+}
+
+/* ─────────────────────────── Conversaciones de WhatsApp ─────────────────────────── */
+
+const conversationSchema = z.object({
+  status: z.enum(
+    CONVERSATION_STATUS_KEYS as [ConversationStatus, ...ConversationStatus[]],
+    "Selecciona un estado válido.",
+  ),
+  assignedAdvisorId: z.string().trim().max(30),
+  take: z.enum(["0", "1"]),
+});
+
+export async function updateConversationAction(
+  id: string,
+  _prev: UpdateState,
+  formData: FormData,
+): Promise<UpdateState> {
+  const parsed = conversationSchema.safeParse({
+    status: formData.get("status") ?? "",
+    assignedAdvisorId: formData.get("assignedAdvisorId") ?? "",
+    take: formData.get("take") ?? "0",
+  });
+  if (!parsed.success) return { error: "Revisa los datos del formulario." };
+
+  const { assignedAdvisorId, take } = parsed.data;
+  // "Tomar la conversación" siempre la deja en manos de un asesor.
+  const status = take === "1" ? "asesor" : parsed.data.status;
+  try {
+    // El asesor asignado debe existir (la base de datos también lo exige).
+    const advisors = await listAdvisors();
+    if (assignedAdvisorId && !advisors.some((a) => a.id === assignedAdvisorId))
+      return { error: "Ese asesor no existe." };
+    // updateConversation() exige sesión de asesor antes de modificar nada.
+    const ok = await updateConversation(id, { status, assignedAdvisorId: assignedAdvisorId || null, take: take === "1" });
+    if (!ok) return { error: "La conversación no existe o no tienes permiso para modificarla." };
+  } catch (error) {
+    unstable_rethrow(error);
+    console.error("[admin/conversacion]", error);
+    return {
+      error:
+        error instanceof Error && error.message.includes("otra conversación abierta")
+          ? error.message
+          : "No se pudieron guardar los cambios. Inténtalo de nuevo.",
+    };
+  }
+
+  revalidatePath("/admin/whatsapp");
+  revalidatePath(`/admin/whatsapp/${id}`);
   return { ok: true, savedAt: Date.now() };
 }
