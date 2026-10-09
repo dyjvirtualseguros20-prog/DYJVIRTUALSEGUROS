@@ -50,7 +50,7 @@ Next.js 16 (App Router, `proxy.ts`), React 19, TypeScript, Tailwind 4, Zod 4, Su
 
 ## Pendientes
 
-- Datos legales completos: NIT 900788292 (dígito de verificación pendiente: el dueño lo confirmará con el RUT; no calcularlo ni inventarlo) y representantes legales Jeisson Steven Urrego Pérez y Deisy Yomaira Urrego Pérez.
+- (Hecho) Datos legales: NIT 900788292-1 (dígito de verificación confirmado por el dueño con el RUT) y representantes legales Jeisson Steven Urrego Pérez y Deisy Yomaira Urrego Pérez.
 - Revisión de un abogado colombiano: política, términos, RNBD, transferencias internacionales, obligaciones de agencia de seguros, autorización C, plazo de conservación, datos de salud.
 - Probar el Asesor Virtual con la IA real en producción (tras renovarse el cupo).
 - Opcional: plan Workers Paid (US$5/mes) si el tráfico del asistente supera el cupo gratis; Google Business Profile; foto de asesores; conectar APIs de las 5 aseguradoras cuando las entreguen.
