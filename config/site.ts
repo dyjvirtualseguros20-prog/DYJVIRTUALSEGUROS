@@ -85,9 +85,9 @@ export const siteConfig = {
     nit: "900788292",
     /**
      * Dígito de verificación del NIT (aparece en el RUT). Opcional: si está vacío, el NIT se
-     * muestra sin él (así lo indicó la empresa).
+     * muestra sin él. Confirmado por la empresa con el RUT.
      */
-    nitCheckDigit: "",
+    nitCheckDigit: "1",
     /** Representantes legales (certificado de Cámara de Comercio). */
     legalRepresentatives: ["Jeisson Steven Urrego Pérez", "Deisy Yomaira Urrego Pérez"],
     /** Dirección física del domicilio principal. */
