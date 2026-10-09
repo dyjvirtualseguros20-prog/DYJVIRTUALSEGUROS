@@ -33,7 +33,9 @@ Next.js 16 (App Router, `proxy.ts`), React 19, TypeScript, Tailwind 4, Zod 4, Su
 
 ## Migraciones Supabase aplicadas
 
-`0001` solicitudes y admins · `0002` asesores · `0003` columna `source` · `0004` correo opcional solo para `asistente_ia` · `0005` `consent` + `insurer_transmissions` (copia previa en `supabase/backups/`) · `0006` conversaciones de WhatsApp + `source = 'whatsapp'` (solo el rol `wa_bot` puede usarlo) (copia previa en `supabase/backups/2026-10-09_antes_de_0006.sql`).
+`0001` solicitudes y admins · `0002` asesores · `0003` columna `source` · `0004` correo opcional solo para `asistente_ia` · `0005` `consent` + `insurer_transmissions` (copia previa en `supabase/backups/`) · `0006` conversaciones de WhatsApp + `source = 'whatsapp'` (solo el rol `wa_bot` puede usarlo) (copia previa en `supabase/backups/2026-10-09_antes_de_0006.sql`) · `0007` `chat_conversations.version` + trigger que la sube en cada cambio de estado (rollback en `supabase/backups/2026-10-09_antes_de_0007.sql`).
+
+Fila por cliente (paso 2.3): Durable Object `ConversationQueue` en `dyj-whatsapp` (uno por número; orden, ráfagas de 2,5 s, reintentos). Verificación estándar: `npm run verificar-todo`.
 
 ## Cómo trabajar
 

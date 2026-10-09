@@ -1,15 +1,19 @@
 /**
  * CANAL WHATSAPP sobre el núcleo común del Asesor IA D&J
  * ──────────────────────────────────────────────────────
- *   mensaje entrante
- *     ├─ duplicado (mismo ID)                 → se ignora
- *     ├─ datos de salud                        → se ocultan ANTES de guardar el mensaje
- *     ├─ conversación con un asesor            → se guarda y la IA NO responde
+ *   lote de mensajes entrantes (uno o una ráfaga, ya ordenados por la fila del cliente: queue.ts)
+ *     ├─ cada mensaje se guarda INDIVIDUALMENTE (con su ID): duplicados → se ignoran
+ *     ├─ datos de salud                        → se ocultan ANTES de guardar cada mensaje
+ *     ├─ conversación con un asesor            → se guardan y la IA NO responde
  *     ├─ esperando confirmación de solicitud   → "ACEPTO" registra autorizaciones + solicitud
- *     └─ resto → núcleo (server/assistant/core.ts), con lo que ya se sabe (lead_state)
+ *     └─ resto → UN turno del núcleo (server/assistant/core.ts) con la ráfaga como un solo mensaje
  *           ├─ escalar  → estado esperando_asesor (la IA deja de responder)
  *           ├─ borrador → resumen + autorizaciones, estado de confirmación
  *           └─ responder / pedir solo lo que falta
+ *
+ *   Escrituras con versión (migración 0007): si la conversación cambió mientras se procesaba
+ *   (p. ej. un asesor la tomó), se lanza StaleConversationError y la fila reintenta con el
+ *   estado nuevo. Las respuestas tienen ID propio: un reintento no las duplica.
  */
 import { cleanText, EMPTY_LEAD, type LeadState, type QuoteDraft } from "@/lib/chat";
 import { LEGAL_VERSIONS, CONSENT_TEXT, QUOTE_DISCLAIMER } from "@/lib/legal";
@@ -40,6 +44,8 @@ export interface Incoming {
   /** ID único del mensaje (wamid en Meta; "sim-…" en simulación). */
   messageId: string;
   simulated: boolean;
+  /** La fila ya ocultó datos de salud de este texto antes de guardarlo (se conserva el aviso). */
+  healthRedacted?: boolean;
 }
 
 export interface Outcome {
@@ -53,6 +59,8 @@ export interface Outcome {
   missing: string[];
   healthRedacted: boolean;
   quoteReference: string | null;
+  /** IDs de los mensajes del cliente que se procesaron juntos en este turno. */
+  messageIds: string[];
 }
 
 export interface Deps {
@@ -62,6 +70,14 @@ export interface Deps {
   sender: OutboundSender;
   defaultAdvisorId: string | null;
   siteUrl: string;
+}
+
+export interface BatchOptions {
+  /**
+   * Reintento de un lote que no terminó: los mensajes que ya se habían guardado se reutilizan
+   * (no son duplicados) y se completa el turno pendiente.
+   */
+  resume?: boolean;
 }
 
 const fold = (s: string) =>
@@ -95,32 +111,52 @@ function consentMessage(siteUrl: string): string {
   ].join("\n\n");
 }
 
+/** Un mensaje (compatibilidad con la Fase 1): es un lote de uno. */
 export async function handleIncoming(deps: Deps, msg: Incoming): Promise<Outcome> {
-  const { store, sender } = deps;
-  const from = msg.from.replace(/\D/g, "");
-  if (!/^[0-9]{8,15}$/.test(from)) throw new Error("Número de WhatsApp no válido.");
-  const original = cleanText(msg.text).slice(0, 4000);
-  if (!original) throw new Error("Mensaje vacío.");
+  return handleIncomingBatch(deps, [msg]);
+}
 
-  const contact = await store.upsertContact(from, msg.name?.trim().slice(0, 120) || null);
+/**
+ * Procesa un lote ORDENADO de mensajes del mismo número (la fila del cliente garantiza que
+ * nunca hay dos lotes del mismo número a la vez). Lanza error si algo falla: la fila lo reintenta.
+ */
+export async function handleIncomingBatch(deps: Deps, msgs: Incoming[], options: BatchOptions = {}): Promise<Outcome> {
+  const { store, sender } = deps;
+  if (!msgs.length) throw new Error("Lote vacío.");
+  const from = msgs[0].from.replace(/\D/g, "");
+  if (!/^[0-9]{8,15}$/.test(from)) throw new Error("Número de WhatsApp no válido.");
+  if (msgs.some((m) => m.from.replace(/\D/g, "") !== from)) throw new Error("Un lote solo puede tener mensajes de un número.");
+  const name = [...msgs].reverse().find((m) => m.name?.trim())?.name?.trim().slice(0, 120) || null;
+
+  const contact = await store.upsertContact(from, name);
   // Asesor de la conversación: el del contacto, o el predeterminado si está activo (si no, sin asesor).
   let advisorId = contact.advisorId;
   if (!advisorId && deps.defaultAdvisorId && (await store.isActiveAdvisor(deps.defaultAdvisorId)))
     advisorId = deps.defaultAdvisorId;
   const conversation = await store.openConversation(contact, advisorId, initialLead(from));
 
-  // Datos de salud: se ocultan antes de guardar, conservando el resto del mensaje.
-  const redacted = redactHealthData(original);
-  const inbound = await store.insertMessage({
-    conversationId: conversation.id,
-    direction: "entrante",
-    author: "cliente",
-    body: redacted.text,
-    healthRedacted: redacted.removed,
-    externalId: msg.messageId,
-    deliveryStatus: "recibido",
-    isSimulated: msg.simulated,
-  });
+  // ── 1. Guardar cada mensaje individualmente (orden de la fila), ocultando datos de salud ──
+  const nuevos: Array<{ original: string; redacted: string; storedId: string | null; messageId: string }> = [];
+  let healthRedacted = false;
+  for (const msg of msgs) {
+    const original = cleanText(msg.text).slice(0, 4000);
+    if (!original) continue;
+    const redacted = redactHealthData(original);
+    const inserted = await store.insertMessage({
+      conversationId: conversation.id,
+      direction: "entrante",
+      author: "cliente",
+      body: redacted.text,
+      healthRedacted: redacted.removed || Boolean(msg.healthRedacted),
+      externalId: msg.messageId,
+      deliveryStatus: "recibido",
+      isSimulated: msg.simulated,
+    });
+    // Ya existía: en un reintento es el mismo mensaje (se reutiliza); si no, es un duplicado.
+    if (!inserted && !options.resume) continue;
+    nuevos.push({ original, redacted: redacted.text, storedId: inserted?.id ?? null, messageId: msg.messageId });
+    healthRedacted ||= redacted.removed || Boolean(msg.healthRedacted);
+  }
 
   const result: Outcome = {
     duplicate: false,
@@ -131,18 +167,25 @@ export async function handleIncoming(deps: Deps, msg: Incoming): Promise<Outcome
     replies: [],
     known: [],
     missing: [],
-    healthRedacted: redacted.removed,
+    healthRedacted,
     quoteReference: null,
+    messageIds: nuevos.map((n) => n.messageId),
   };
-  if (!inbound) return { ...result, duplicate: true };
+  if (!nuevos.length) return { ...result, duplicate: true };
 
   // Un asesor tiene (o está por tomar) la conversación: la IA no responde.
   if (conversation.status === "esperando_asesor" || conversation.status === "asesor") return result;
 
   if ((await store.countRecentInbound(conversation.id, 10)) > MAX_INBOUND_PER_10_MIN) return result;
 
+  // Las respuestas tienen un ID derivado del primer mensaje del lote: si un reintento vuelve a
+  // generar la misma respuesta, no se guarda ni se envía dos veces.
+  const replyKey = `${nuevos[0].messageId}:r`;
+  let replyIndex = 0;
   const say = async (texts: string[], intent: Intent | null) => {
     for (const text of texts) {
+      const externalId = `${replyKey}${replyIndex++}`;
+      if (await store.messageExists(externalId)) continue;
       const delivery = await sender.send(from, text);
       await store.insertMessage({
         conversationId: conversation.id,
@@ -150,23 +193,27 @@ export async function handleIncoming(deps: Deps, msg: Incoming): Promise<Outcome
         author: "ia",
         body: text,
         intent,
-        externalId: delivery.externalId ?? null,
+        externalId,
         deliveryStatus: delivery.status,
-        isSimulated: msg.simulated,
+        isSimulated: msgs[0].simulated,
       });
       result.replies.push(text);
     }
   };
 
-  // ── Confirmación de una solicitud completa ──
-  if (conversation.pendingAction === "confirmar_solicitud" && conversation.quoteDraft && isAcceptance(original)) {
-    const reference = await registerQuote(deps, conversation, contact.id, inbound.id);
-    await store.updateConversation(conversation.id, {
-      pendingAction: null,
-      quoteDraft: null,
-      quoteRequestId: reference.id,
-      intent: "cotizacion",
-    });
+  // ── 2. Confirmación de una solicitud completa ──
+  const evidence = nuevos.find((n) => isAcceptance(n.original));
+  if (conversation.pendingAction === "confirmar_solicitud" && conversation.quoteDraft && evidence) {
+    // Se "reclama" la confirmación con la versión leída: si dos procesos (o un reintento) llegan
+    // aquí, solo uno puede registrar la solicitud. Si después algo falla, el borrador se conserva
+    // y el asistente vuelve a pedir la confirmación: nunca se crea una solicitud doble.
+    const claimed = await store.updateConversation(conversation.id, { pendingAction: null }, conversation.version);
+    const reference = await registerQuote(deps, conversation, contact.id, evidence.storedId);
+    await store.updateConversation(
+      conversation.id,
+      { quoteDraft: null, quoteRequestId: reference.id, intent: "cotizacion" },
+      claimed,
+    );
     result.quoteReference = reference.reference;
     result.intent = "cotizacion";
     await say(
@@ -179,27 +226,32 @@ export async function handleIncoming(deps: Deps, msg: Incoming): Promise<Outcome
     return result;
   }
 
-  // ── Turno del núcleo común ──
-  const history = await store.recentHistory(conversation.id, HISTORY_WINDOW);
+  // ── 3. Turno del núcleo común (la ráfaga se interpreta como un solo mensaje) ──
+  const history = collapseBurst(await store.recentHistory(conversation.id, HISTORY_WINDOW + nuevos.length - 1), nuevos.length);
   const turn = await runAssistantTurn({
     history,
     lead: conversation.leadState,
     advisor: null,
     models: deps.models,
     channel: "whatsapp",
-    healthDataRedacted: redacted.removed,
+    healthDataRedacted: healthRedacted,
   });
 
   const status: ConversationStatus = turn.kind === "escalar" ? "esperando_asesor" : "bot";
-  await store.updateConversation(conversation.id, {
-    leadState: turn.lead,
-    intent: turn.intent,
-    escalationReason: turn.escalation,
-    status,
-    // Un borrador nuevo queda esperando "ACEPTO"; cualquier otro resultado cancela la confirmación pendiente.
-    pendingAction: turn.draft ? "confirmar_solicitud" : null,
-    quoteDraft: turn.draft,
-  });
+  // Con la versión leída: si un asesor tomó la conversación mientras tanto, NO se escribe encima.
+  await store.updateConversation(
+    conversation.id,
+    {
+      leadState: turn.lead,
+      intent: turn.intent,
+      escalationReason: turn.escalation,
+      status,
+      // Un borrador nuevo queda esperando "ACEPTO"; cualquier otro resultado cancela la confirmación pendiente.
+      pendingAction: turn.draft ? "confirmar_solicitud" : null,
+      quoteDraft: turn.draft,
+    },
+    conversation.version,
+  );
   Object.assign(result, {
     status,
     intent: turn.intent,
@@ -214,8 +266,25 @@ export async function handleIncoming(deps: Deps, msg: Incoming): Promise<Outcome
   return result;
 }
 
+/**
+ * Los últimos `count` mensajes del cliente (la ráfaga) se presentan al núcleo como UN solo
+ * mensaje, en orden. Así el asistente lee "Hola / quiero cotizar / una Mazda CX-5 / 2024" como una
+ * sola petición. En la base de datos siguen guardados por separado.
+ */
+function collapseBurst(history: Array<{ role: "user" | "assistant"; content: string }>, count: number) {
+  if (count <= 1) return history;
+  const tail = history.slice(-count);
+  if (tail.length !== count || tail.some((m) => m.role !== "user")) return history;
+  return [...history.slice(0, -count), { role: "user" as const, content: tail.map((m) => m.content).join("\n") }];
+}
+
 /** Registra las autorizaciones A y B y la solicitud (misma función y validación que la web). */
-async function registerQuote(deps: Deps, conversation: Conversation, contactId: string, evidenceMessageId: string) {
+async function registerQuote(
+  deps: Deps,
+  conversation: Conversation,
+  contactId: string,
+  evidenceMessageId: string | null,
+) {
   const { store } = deps;
   const draft = conversation.quoteDraft!;
   const validation = validateAssistantForm(draft.insuranceType, {

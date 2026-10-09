@@ -9,6 +9,8 @@ export interface Env {
    * en la configuración de Hyperdrive "dyj-whatsapp-db" (caché desactivada), no en el código.
    */
   HYPERDRIVE: Hyperdrive;
+  /** Fila ordenada por cliente (Durable Object, una instancia por número). */
+  CONVERSATION_QUEUE: DurableObjectNamespace<import("./queue-do").ConversationQueue>;
   /** SECRETO: clave que protege POST /simular. */
   SIMULATION_KEY: string;
   /** "simulacion" en esta fase: no se reciben ni se envían mensajes reales. */

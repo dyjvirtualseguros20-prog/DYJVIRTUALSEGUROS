@@ -16,6 +16,9 @@
   "ai": { "binding": "AI" },
   // Supabase vía Hyperdrive (rol wa_bot, caché desactivada). Las credenciales están cifradas en Hyperdrive.
   "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "b9bca5b7725a436488b6d46e7691db2a" }],
+  // Fila ordenada por cliente: un Durable Object (SQLite, disponible en el plan gratuito) por número.
+  "durable_objects": { "bindings": [{ "name": "CONVERSATION_QUEUE", "class_name": "ConversationQueue" }] },
+  "migrations": [{ "tag": "v1-fila-por-cliente", "new_sqlite_classes": ["ConversationQueue"] }],
   "observability": { "enabled": true },
   "vars": {
     "WHATSAPP_MODE": "simulacion",

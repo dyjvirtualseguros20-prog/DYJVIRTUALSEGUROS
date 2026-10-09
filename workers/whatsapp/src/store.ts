@@ -30,7 +30,12 @@ export interface Conversation {
   quoteDraft: QuoteDraft | null;
   quoteRequestId: string | null;
   assignedAdvisorId: string | null;
+  /** Sube con cada cambio de estado (trigger de la migración 0007). */
+  version: number;
 }
+
+/** La conversación cambió (otro proceso o un asesor) desde que se leyó: no se escribe encima. */
+export class StaleConversationError extends Error {}
 
 export interface NewMessage {
   conversationId: string;
@@ -71,7 +76,13 @@ export interface ChatStore {
   insertMessage(message: NewMessage): Promise<{ id: string } | null>;
   /** Historial reciente en formato del asistente (cliente → user; IA/asesor/sistema → assistant). */
   recentHistory(conversationId: string, limit: number): Promise<Array<{ role: "user" | "assistant"; content: string }>>;
-  updateConversation(id: string, patch: ConversationPatch): Promise<void>;
+  /**
+   * Cambia el estado de la conversación. Con `expectedVersion`, solo se aplica si nadie la cambió
+   * desde que se leyó (si no, StaleConversationError). Devuelve la versión resultante.
+   */
+  updateConversation(id: string, patch: ConversationPatch, expectedVersion?: number): Promise<number>;
+  /** ¿Ya existe un mensaje con este ID externo (Meta, simulación o respuesta)? */
+  messageExists(externalId: string): Promise<boolean>;
   recordConsents(rows: ConsentRow[]): Promise<void>;
   countRecentInbound(conversationId: string, minutes: number): Promise<number>;
   isActiveAdvisor(id: string): Promise<boolean>;
@@ -130,6 +141,7 @@ export function createPostgresStore(connectionString: string): ChatStore {
     quoteDraft: (r.quote_draft as QuoteDraft | null) ?? null,
     quoteRequestId: (r.quote_request_id as string | null) ?? null,
     assignedAdvisorId: (r.assigned_advisor_id as string | null) ?? null,
+    version: Number(r.version ?? 0),
   });
 
   return {
@@ -182,7 +194,7 @@ export function createPostgresStore(connectionString: string): ChatStore {
       return rows.map((r) => ({ role: r.author === "cliente" ? "user" : "assistant", content: String(r.body) }));
     },
 
-    async updateConversation(id, patch) {
+    async updateConversation(id, patch, expectedVersion) {
       const columns: Record<string, unknown> = {};
       if ("status" in patch) columns.status = patch.status;
       if ("intent" in patch) columns.intent = patch.intent;
@@ -192,8 +204,25 @@ export function createPostgresStore(connectionString: string): ChatStore {
       if ("quoteDraft" in patch)
         columns.quote_draft = patch.quoteDraft ? sql.json(patch.quoteDraft as unknown as postgres.JSONValue) : null;
       if ("quoteRequestId" in patch) columns.quote_request_id = patch.quoteRequestId;
-      if (!Object.keys(columns).length) return;
-      await sql`update public.chat_conversations set ${sql(columns as Record<string, postgres.ParameterOrJSON<never>>)} where id = ${id}`;
+      const set = sql(columns as Record<string, postgres.ParameterOrJSON<never>>);
+      if (!Object.keys(columns).length) {
+        const [r] = await sql`select version from public.chat_conversations where id = ${id}`;
+        if (expectedVersion !== undefined && r && Number(r.version) !== expectedVersion)
+          throw new StaleConversationError("La conversación cambió mientras se procesaba el mensaje.");
+        return Number(r?.version ?? 0);
+      }
+      // La versión la sube el trigger 0007; aquí solo se exige que no haya cambiado desde la lectura.
+      const rows =
+        expectedVersion === undefined
+          ? await sql`update public.chat_conversations set ${set} where id = ${id} returning version`
+          : await sql`update public.chat_conversations set ${set} where id = ${id} and version = ${expectedVersion} returning version`;
+      if (!rows.length) throw new StaleConversationError("La conversación cambió mientras se procesaba el mensaje.");
+      return Number(rows[0].version);
+    },
+
+    async messageExists(externalId) {
+      const rows = await sql`select 1 from public.chat_messages where external_id = ${externalId} limit 1`;
+      return rows.length > 0;
     },
 
     async recordConsents(rows) {
@@ -257,12 +286,40 @@ export interface MemoryState {
   quoteRequests: Array<{ id: string; reference: string; submission: QuoteSubmission; advisorId: string | null; consent: Record<string, unknown> }>;
 }
 
-export function createMemoryStore(activeAdvisors: string[] = ["cristian", "jeisson"]): ChatStore & { state: MemoryState } {
+/** Campos que, al cambiar, suben la versión (igual que el trigger de la migración 0007). */
+const VERSIONED: Array<keyof Conversation> = [
+  "status",
+  "intent",
+  "escalationReason",
+  "leadState",
+  "pendingAction",
+  "quoteDraft",
+  "quoteRequestId",
+  "assignedAdvisorId",
+];
+
+type MemoryOp = "insertMessage" | "updateConversation" | "recentHistory";
+
+export function createMemoryStore(
+  activeAdvisors: string[] = ["cristian", "jeisson"],
+): ChatStore & { state: MemoryState; failOnce(op: MemoryOp): void } {
   const state: MemoryState = { contacts: [], conversations: [], messages: [], consents: [], quoteRequests: [] };
   let seq = 0;
   const id = () => `mem-${++seq}`;
+  const pendingFailures: MemoryOp[] = [];
+  /** Simula una caída de la base de datos en la próxima operación de ese tipo (solo pruebas). */
+  const maybeFail = (op: MemoryOp) => {
+    const i = pendingFailures.indexOf(op);
+    if (i >= 0) {
+      pendingFailures.splice(i, 1);
+      throw new Error(`Base de datos no disponible (simulado: ${op})`);
+    }
+  };
   return {
     state,
+    failOnce(op) {
+      pendingFailures.push(op);
+    },
     async upsertContact(externalId, displayName) {
       let c = state.contacts.find((x) => x.externalId === externalId);
       if (!c) state.contacts.push((c = { id: id(), externalId, displayName, advisorId: null }));
@@ -283,26 +340,39 @@ export function createMemoryStore(activeAdvisors: string[] = ["cristian", "jeiss
           quoteDraft: null,
           quoteRequestId: null,
           assignedAdvisorId: advisorId,
+          version: 0,
         };
         state.conversations.push(c);
       }
       return structuredClone(c);
     },
     async insertMessage(m) {
+      maybeFail("insertMessage");
       if (m.externalId && state.messages.some((x) => x.externalId === m.externalId)) return null;
       const row = { ...m, id: id(), createdAt: seq };
       state.messages.push(row);
       return { id: row.id };
     },
     async recentHistory(conversationId, limit) {
+      maybeFail("recentHistory");
       return state.messages
         .filter((m) => m.conversationId === conversationId && m.body)
         .slice(-limit)
         .map((m) => ({ role: m.author === "cliente" ? ("user" as const) : ("assistant" as const), content: m.body }));
     },
-    async updateConversation(convId, patch) {
+    async updateConversation(convId, patch, expectedVersion) {
+      maybeFail("updateConversation");
       const c = state.conversations.find((x) => x.id === convId);
-      if (c) Object.assign(c, structuredClone(patch));
+      if (!c) throw new StaleConversationError("La conversación no existe.");
+      if (expectedVersion !== undefined && c.version !== expectedVersion)
+        throw new StaleConversationError("La conversación cambió mientras se procesaba el mensaje.");
+      const before = JSON.stringify(VERSIONED.map((k) => c[k]));
+      Object.assign(c, structuredClone(patch));
+      if (JSON.stringify(VERSIONED.map((k) => c[k])) !== before) c.version++;
+      return c.version;
+    },
+    async messageExists(externalId) {
+      return state.messages.some((m) => m.externalId === externalId);
     },
     async recordConsents(rows) {
       state.consents.push(...rows);
