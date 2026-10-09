@@ -15,7 +15,7 @@ import { cleanText, EMPTY_LEAD, type LeadState, type QuoteDraft } from "@/lib/ch
 import { LEGAL_VERSIONS, CONSENT_TEXT, QUOTE_DISCLAIMER } from "@/lib/legal";
 import { buildQuoteSubmission, newRequestReference } from "@/lib/quoteSubmission";
 import { validateAssistantForm, type AssistantQuoteForm } from "@/lib/validation/quoteSchemas";
-import type { LanguageModel } from "@/server/ai/model";
+import type { ModelSource } from "@/server/ai/router";
 import { HISTORY_WINDOW, runAssistantTurn, type EscalationReason, type Intent } from "@/server/assistant/core";
 import { redactHealthData } from "@/server/assistant/grounding";
 import { leadNotes } from "@/server/assistant/lead";
@@ -57,7 +57,8 @@ export interface Outcome {
 
 export interface Deps {
   store: ChatStore;
-  model: LanguageModel;
+  /** Modelos por tarea (server/ai/router.ts). */
+  models: ModelSource;
   sender: OutboundSender;
   defaultAdvisorId: string | null;
   siteUrl: string;
@@ -184,7 +185,7 @@ export async function handleIncoming(deps: Deps, msg: Incoming): Promise<Outcome
     history,
     lead: conversation.leadState,
     advisor: null,
-    model: deps.model,
+    models: deps.models,
     channel: "whatsapp",
     healthDataRedacted: redacted.removed,
   });

@@ -33,13 +33,38 @@ export interface AiBinding {
   run(model: string, input: Record<string, unknown>): Promise<unknown>;
 }
 
+/** Proveedor que implementa este archivo (lo usa el enrutador de modelos: server/ai/router.ts). */
+export const WORKERS_AI_PROVIDER = "workers-ai";
+
+/** Uso informado por el proveedor. null = el proveedor no lo entregó (nunca se estima ni se inventa). */
+export interface ModelUsage {
+  inputTokens: number | null;
+  outputTokens: number | null;
+}
+
+export interface ModelHooks {
+  /** Se llama con el uso de cada respuesta recibida (si el proveedor no lo informa, con nulls). */
+  onUsage?: (usage: ModelUsage) => void;
+}
+
+/** Tokens que informa Workers AI en la respuesta (`usage`), solo si son números. */
+function usageFrom(raw: unknown): ModelUsage {
+  const u = (raw as { usage?: { prompt_tokens?: unknown; completion_tokens?: unknown } } | null)?.usage;
+  const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+  return { inputTokens: n(u?.prompt_tokens), outputTokens: n(u?.completion_tokens) };
+}
+
 function withTimeout<T>(promise: Promise<T>): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
   return Promise.race([
     promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new AiError("Tiempo de espera agotado.", "busy")), TIMEOUT_MS),
-    ),
-  ]);
+    new Promise<T>((_, reject) => {
+      timer = setTimeout(() => reject(new AiError("Tiempo de espera agotado.", "busy")), TIMEOUT_MS);
+    }),
+    // El temporizador se cancela al terminar: no queda pendiente después de la respuesta.
+  ]).finally(() => {
+    if (timer !== undefined) clearTimeout(timer);
+  });
 }
 
 /** Extrae el objeto JSON de la respuesta (según el modelo llega como objeto o como texto). */
@@ -59,8 +84,8 @@ function parseJson(raw: unknown): unknown {
   }
 }
 
-/** Modelo de Workers AI sobre un binding `AI`. */
-export function createWorkersAiModel(binding: AiBinding, modelName?: string): LanguageModel {
+/** Modelo de Workers AI sobre un binding `AI`. `hooks.onUsage` recibe los tokens si Workers AI los informa. */
+export function createWorkersAiModel(binding: AiBinding, modelName?: string, hooks: ModelHooks = {}): LanguageModel {
   const model = modelName?.trim() || DEFAULT_MODEL;
 
   async function attempt(messages: ModelMessage[], schema: object, maxTokens: number): Promise<unknown> {
@@ -86,6 +111,7 @@ export function createWorkersAiModel(binding: AiBinding, modelName?: string): La
       if (/limit|quota|neuron|capacity|429|3036|3040|4006/i.test(message)) throw new AiError(message, "busy");
       throw new AiError(message, "failed");
     }
+    hooks.onUsage?.(usageFrom(raw));
     try {
       return parseJson(raw);
     } catch (error) {

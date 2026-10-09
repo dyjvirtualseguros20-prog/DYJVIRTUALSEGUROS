@@ -13,8 +13,15 @@ import "server-only";
  * aquí solo se obtiene el binding a través de OpenNext.
  */
 import { type AiBinding, createWorkersAiModel, type LanguageModel } from "./model";
+import { createWorkersAiRouter, memoryUsageSink, type ModelRouter } from "./router";
 
 export { AiError, DEFAULT_MODEL, type LanguageModel, type ModelMessage } from "./model";
+
+/**
+ * Uso de la IA de la web (por instancia, en memoria; no se persiste ni se muestra).
+ * Queda disponible para una futura vista de consumo sin cambiar el comportamiento actual.
+ */
+export const webModelUsage = memoryUsageSink(200);
 
 /** Binding de Workers AI, o null si no existe (Vercel, o local sin wrangler). */
 async function getAiBinding(): Promise<AiBinding | null> {
@@ -35,7 +42,14 @@ export async function isWorkersAiAvailable(): Promise<boolean> {
   return (await getAiBinding()) !== null;
 }
 
+/** Compatibilidad: un modelo directo de Workers AI (el núcleo usa getModelRouter). */
 export async function getLanguageModel(): Promise<LanguageModel | null> {
   const ai = await getAiBinding();
   return ai ? createWorkersAiModel(ai, process.env.WORKERS_AI_MODEL) : null;
+}
+
+/** Modelos por tarea de la web. Hoy: todas las tareas → Workers AI con el modelo de siempre. */
+export async function getModelRouter(): Promise<ModelRouter | null> {
+  const ai = await getAiBinding();
+  return ai ? createWorkersAiRouter(ai, { modelOverride: process.env.WORKERS_AI_MODEL, sink: webModelUsage }) : null;
 }

@@ -10,6 +10,7 @@
  */
 import { EMPTY_LEAD } from "@/lib/chat";
 import type { LanguageModel, ModelMessage } from "@/server/ai/model";
+import { singleModel } from "@/server/ai/router";
 import { runAssistantTurn } from "@/server/assistant/core";
 import { HEALTH_PLACEHOLDER } from "@/server/assistant/grounding";
 import { handleIncoming, type Deps, type Outcome } from "../src/conversation";
@@ -84,7 +85,13 @@ let checks = 0;
 const results: Array<{ escenario: string; ok: boolean; detalle: string[] }> = [];
 
 function newDeps(): Deps {
-  return { store, model: fakeModel(), sender: simulatedSender, defaultAdvisorId: null, siteUrl: "https://dyjvirtualseguros.com" };
+  return {
+    store,
+    models: singleModel(fakeModel()),
+    sender: simulatedSender,
+    defaultAdvisorId: null,
+    siteUrl: "https://dyjvirtualseguros.com",
+  };
 }
 
 let msgSeq = 0;

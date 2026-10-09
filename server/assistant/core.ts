@@ -19,6 +19,7 @@ import { siteConfig } from "@/config/site";
 import { cleanText, type ChatMessage, type LeadState, type QuoteDraft } from "@/lib/chat";
 import type { Advisor } from "@/types";
 import type { LanguageModel, ModelMessage } from "@/server/ai/model";
+import { singleModel, type ModelSource, type ModelTask } from "@/server/ai/router";
 import { groupedRequest } from "./collect";
 import {
   asksForHuman,
@@ -44,6 +45,8 @@ export type { AssistantChannel, Intent };
 /** Mensajes recientes que se envían al modelo (lo anterior ya está resumido en LeadState). */
 export const HISTORY_WINDOW = 12;
 const MAX_OUTPUT_TOKENS = 800;
+/** Tarea con la que el núcleo pide el modelo para un turno de conversación. */
+export const TURN_TASK: ModelTask = "razonamiento";
 
 /** Por qué una conversación debe pasar a una persona. */
 export type EscalationReason = "accidente" | "reclamacion" | "asesor_humano" | "baja_confianza";
@@ -54,7 +57,10 @@ export interface AssistantTurnInput {
   /** Lo que ya se sabe de la solicitud en esta conversación. */
   lead: LeadState;
   advisor: Advisor | null;
-  model: LanguageModel;
+  /** Modelos por tarea (server/ai/router.ts). Es la forma recomendada. */
+  models?: ModelSource;
+  /** Compatibilidad: un solo modelo para todas las tareas (equivale a singleModel(model)). */
+  model?: LanguageModel;
   channel: AssistantChannel;
   /**
    * El canal ya ocultó datos de salud del último mensaje antes de guardarlo (WhatsApp).
@@ -178,12 +184,16 @@ const DRAFT_REPLY: Record<AssistantChannel, string> = {
 
 /** Un turno de conversación: interpreta el último mensaje y decide qué hacer. No guarda nada. */
 export async function runAssistantTurn(input: AssistantTurnInput): Promise<AssistantTurn> {
-  const { history, lead, advisor, model, channel } = input;
+  const { history, lead, advisor, channel } = input;
+  const models = input.models ?? (input.model ? singleModel(input.model) : null);
+  if (!models) throw new Error("runAssistantTurn necesita `models` o `model`.");
   const recent = history.slice(-HISTORY_WINDOW);
   const messages: ModelMessage[] = [
     { role: "system", content: systemPrompt(advisor, bogotaToday(), lead, channel) },
     ...recent.map((m) => ({ role: m.role, content: m.content })),
   ];
+  // El turno de conversación (interpretar + responder) es una tarea de "razonamiento".
+  const model = models.forTask(TURN_TASK);
   const output = modelOutput.parse(await model.generateJson(messages, RESPONSE_SCHEMA, MAX_OUTPUT_TOKENS));
 
   // ── Actualizar el estado del cliente con TODO lo que escribió (nunca datos inventados) ──

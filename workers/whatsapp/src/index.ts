@@ -8,7 +8,8 @@
  *
  * Usa el mismo núcleo que el chat de la web (server/assistant/core.ts) y las mismas tablas de Supabase.
  */
-import { AiError, createWorkersAiModel } from "@/server/ai/model";
+import { AiError } from "@/server/ai/model";
+import { consoleUsageSink, createWorkersAiRouter, singleModel } from "@/server/ai/router";
 import { handleIncoming } from "./conversation";
 import type { Env } from "./env";
 import { simulatedSender } from "./sender";
@@ -68,8 +69,11 @@ const worker = {
       }
       if (pathname !== "/simular") return notFound();
       // "modelo": "prueba" → verificación de la conexión sin usar (ni gastar) Workers AI.
-      const model =
-        body.modelo === "prueba" ? connectionTestModel : createWorkersAiModel(env.AI, env.WORKERS_AI_MODEL);
+      // Si no, modelos por tarea con la configuración actual (todo Workers AI, mismo modelo).
+      const models =
+        body.modelo === "prueba"
+          ? singleModel(connectionTestModel)
+          : createWorkersAiRouter(env.AI, { modelOverride: env.WORKERS_AI_MODEL, sink: consoleUsageSink });
       const text = typeof body.text === "string" ? body.text : "";
       // Los IDs simulados siempre empiezan por "sim-" para no confundirse nunca con mensajes reales.
       const rawId = typeof body.messageId === "string" && body.messageId.trim() ? body.messageId.trim() : crypto.randomUUID();
@@ -78,7 +82,7 @@ const worker = {
         handleIncoming(
           {
             store,
-            model,
+            models,
             sender: simulatedSender,
             defaultAdvisorId: env.DEFAULT_ADVISOR_ID?.trim() || null,
             siteUrl: env.SITE_URL,

@@ -15,7 +15,7 @@ import { siteConfig } from "@/config/site";
 import type { ChatMessage, ChatResponse, LeadState } from "@/lib/chat";
 import { getProduct } from "@/lib/insurance";
 import type { Advisor } from "@/types";
-import { AiError, getLanguageModel, isWorkersAiAvailable } from "@/server/ai/workersAi";
+import { AiError, getModelRouter, isWorkersAiAvailable } from "@/server/ai/workersAi";
 import { runAssistantTurn } from "./core";
 
 export { AiError };
@@ -30,10 +30,10 @@ export async function replyToVisitor(
   lead: LeadState,
   advisor: Advisor | null,
 ): Promise<ChatResponse> {
-  const model = await getLanguageModel();
-  if (!model) throw new AiError("Workers AI no está disponible.", "unavailable");
+  const models = await getModelRouter();
+  if (!models) throw new AiError("Workers AI no está disponible.", "unavailable");
 
-  const turn = await runAssistantTurn({ history, lead, advisor, model, channel: "web" });
+  const turn = await runAssistantTurn({ history, lead, advisor, models, channel: "web" });
   const { reply } = turn;
   const next = turn.lead;
 
