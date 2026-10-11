@@ -15,6 +15,7 @@
  *   solicitud.pedir_revision       PROPONER  "está muy caro / otra opción": lo decide un asesor
  */
 import { z } from "zod";
+import { EMPTY_LEAD, type LeadState } from "@/lib/chat";
 import { LEGAL_VERSIONS } from "@/lib/legal";
 import { buildQuoteSubmission, newRequestReference } from "@/lib/quoteSubmission";
 import { validateAssistantForm, type AssistantQuoteForm } from "@/lib/validation/quoteSchemas";
@@ -129,7 +130,7 @@ export const registrarSolicitud: ToolDefinition<RegisterInput, { id: string; ref
     await store.linkContactRequest(i.contactId, reference.id, conversation.id);
     await store.updateConversation(
       conversation.id,
-      { quoteDraft: null, quoteRequestId: reference.id, intent: "cotizacion" },
+      { quoteDraft: null, quoteRequestId: reference.id, intent: "cotizacion", leadState: afterRegistration(conversation.leadState) },
       claimed,
     );
     return reference;
@@ -140,6 +141,17 @@ export const registrarSolicitud: ToolDefinition<RegisterInput, { id: string; ref
     autorizaciones: ["politica_terminos", "tratamiento_datos"],
   }),
 };
+
+/** Datos de la persona que se conservan tras registrar (para no volver a preguntarlos). */
+const PERSON_FIELDS = new Set(["fullName", "documentNumber", "city", "phone", "email"]);
+
+/**
+ * Tras registrar, el lead vuelve a empezar SIN los datos del bien asegurado: así un mensaje posterior
+ * no rearma el mismo borrador (ni una segunda solicitud igual), pero no se repiten los datos personales.
+ */
+function afterRegistration(lead: LeadState): LeadState {
+  return { ...EMPTY_LEAD, fields: Object.fromEntries(Object.entries(lead.fields).filter(([k]) => PERSON_FIELDS.has(k))) };
+}
 
 /** Registra las autorizaciones A y B y la solicitud (misma función y validación que la web). */
 async function registerQuote(

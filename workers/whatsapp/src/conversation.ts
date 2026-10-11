@@ -253,7 +253,14 @@ export async function handleIncomingBatch(deps: Deps, msgs: Incoming[], options:
     return result;
   }
 
-  // ── 3. Seguimiento con datos reales (nunca inventados) ──
+  // ── 3. ACEPTO repetido después de registrar: no se registra otra; se informa la que ya existe ──
+  if (evidence && conversation.quoteRequestId && conversation.pendingAction !== "confirmar_solicitud") {
+    const read = await tools.runOrThrow(consultarSolicitudes, IA_WHATSAPP, { store }, { contactId: contact.id, conversationId: conversation.id });
+    await say([statusReply(read.status === "ok" ? read.data : [], false)], conversation.intent);
+    return result;
+  }
+
+  // ── 4. Seguimiento con datos reales (nunca inventados) ──
   const said = nuevos.map((n) => n.original).join("\n");
   const wantsStatus = asksQuoteStatus(said);
   const wantsAlternative = asksForAlternative(said);
@@ -280,7 +287,7 @@ export async function handleIncomingBatch(deps: Deps, msgs: Incoming[], options:
     }
   }
 
-  // ── 4. Turno del núcleo común (la ráfaga se interpreta como un solo mensaje) ──
+  // ── 5. Turno del núcleo común (la ráfaga se interpreta como un solo mensaje) ──
   const history = collapseBurst(await store.recentHistory(conversation.id, HISTORY_WINDOW + nuevos.length - 1), nuevos.length);
   const turn = await runAssistantTurn({
     history,

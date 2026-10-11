@@ -349,6 +349,15 @@ await prueba(
       "ACEPTO registra; repetido o reenviado no registra otra",
     );
     check(
+      again.replies.length === 1 && again.replies[0].includes(ok.quoteReference!),
+      "un ACEPTO repetido informa la solicitud ya registrada",
+    );
+    const reg = store.state.conversations.find((c) => c.id === ok.conversationId)!;
+    check(
+      !reg.leadState.fields.plate && reg.leadState.fields.fullName === "Andrea Prueba Ruiz",
+      "tras registrar: se limpian los datos del vehículo y se conservan los de la persona",
+    );
+    check(
       store.state.quoteRequests.length === 1 && store.state.quoteRequests[0].advisorId === "prueba-mvp",
       "UNA solicitud, asignada al asesor del enlace",
     );
@@ -381,7 +390,7 @@ await prueba(
       "queda una propuesta pendiente para el asesor",
     );
     check(
-      eventos(store, "contexto.consultar_solicitudes").length === 4,
+      eventos(store, "contexto.consultar_solicitudes").length === 5,
       "las consultas de contexto quedan auditadas (LEER)",
     );
 
