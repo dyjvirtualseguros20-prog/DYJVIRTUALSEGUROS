@@ -14,24 +14,22 @@
  *   Escrituras con versión (migración 0007): si la conversación cambió mientras se procesaba
  *   (p. ej. un asesor la tomó), se lanza StaleConversationError y la fila reintenta con el
  *   estado nuevo. Las respuestas tienen ID propio: un reintento no las duplica.
+ *
+ *   Acciones (paso 2.5): los cambios de estado del negocio (turno, escalamiento, registrar la
+ *   solicitud) pasan por el ToolRunner (src/tools.ts): política, autorización, idempotencia y
+ *   un evento en audit_events por cada una.
  */
 import { cleanText, EMPTY_LEAD, type LeadState, type QuoteDraft } from "@/lib/chat";
-import { LEGAL_VERSIONS, CONSENT_TEXT, QUOTE_DISCLAIMER } from "@/lib/legal";
-import { buildQuoteSubmission, newRequestReference } from "@/lib/quoteSubmission";
-import { validateAssistantForm, type AssistantQuoteForm } from "@/lib/validation/quoteSchemas";
+import { CONSENT_TEXT, QUOTE_DISCLAIMER } from "@/lib/legal";
 import type { ModelSource } from "@/server/ai/router";
 import { HISTORY_WINDOW, runAssistantTurn, type EscalationReason, type Intent } from "@/server/assistant/core";
 import { redactHealthData } from "@/server/assistant/grounding";
-import { leadNotes } from "@/server/assistant/lead";
-import { type ChatStore, type Conversation, type ConversationStatus, DuplicateReferenceError } from "./store";
+import { createToolRunner } from "@/server/tools/runner";
+import type { ChatStore, ConversationStatus } from "./store";
 import type { OutboundSender } from "./sender";
+import { actualizarTurno, escalarConversacion, IA_WHATSAPP, registrarSolicitud } from "./tools";
 
-/**
- * Versión del mensaje de autorización que se muestra por WhatsApp. Reutiliza los textos vigentes
- * de las casillas de la web (lib/legal.ts); el texto jurídico definitivo para WhatsApp está
- * PENDIENTE de revisión y, cuando exista, se cambia aquí junto con esta versión.
- */
-export const WHATSAPP_CONSENT_TEXT_VERSION = "wa-tecnico-1-pendiente-revision-juridica";
+export { WHATSAPP_CONSENT_TEXT_VERSION } from "./tools";
 
 /** Mensajes por conversación en 10 minutos a partir de los cuales la IA deja de responder. */
 const MAX_INBOUND_PER_10_MIN = 20;
@@ -123,6 +121,7 @@ export async function handleIncoming(deps: Deps, msg: Incoming): Promise<Outcome
 export async function handleIncomingBatch(deps: Deps, msgs: Incoming[], options: BatchOptions = {}): Promise<Outcome> {
   const { store, sender } = deps;
   if (!msgs.length) throw new Error("Lote vacío.");
+  const tools = createToolRunner(store.tools);
   const from = msgs[0].from.replace(/\D/g, "");
   if (!/^[0-9]{8,15}$/.test(from)) throw new Error("Número de WhatsApp no válido.");
   if (msgs.some((m) => m.from.replace(/\D/g, "") !== from)) throw new Error("Un lote solo puede tener mensajes de un número.");
@@ -204,16 +203,26 @@ export async function handleIncomingBatch(deps: Deps, msgs: Incoming[], options:
   // ── 2. Confirmación de una solicitud completa ──
   const evidence = nuevos.find((n) => isAcceptance(n.original));
   if (conversation.pendingAction === "confirmar_solicitud" && conversation.quoteDraft && evidence) {
-    // Se "reclama" la confirmación con la versión leída: si dos procesos (o un reintento) llegan
-    // aquí, solo uno puede registrar la solicitud. Si después algo falla, el borrador se conserva
-    // y el asistente vuelve a pedir la confirmación: nunca se crea una solicitud doble.
-    const claimed = await store.updateConversation(conversation.id, { pendingAction: null }, conversation.version);
-    const reference = await registerQuote(deps, conversation, contact.id, evidence.storedId);
-    await store.updateConversation(
-      conversation.id,
-      { quoteDraft: null, quoteRequestId: reference.id, intent: "cotizacion" },
-      claimed,
+    // ToolRunner: autorización (ACEPTO + borrador), idempotencia por conversación y mensaje, auditoría.
+    // Un error se relanza: la fila reintenta (la clave se libera y el borrador se conserva).
+    const registered = await tools.runOrThrow(
+      registrarSolicitud,
+      IA_WHATSAPP,
+      { store },
+      { conversation, contactId: contact.id, evidenceMessageId: evidence.storedId, accepted: true },
+      { idempotencyKey: `solicitud.registrar:${conversation.id}:${evidence.messageId}` },
     );
+    // Otro proceso tiene la misma confirmación en curso: se reintenta más tarde (la fila).
+    if (registered.status === "denegado" && registered.reason === "en_curso") throw new Error("Registro en curso en otro proceso.");
+    if (registered.status === "denegado" || registered.status === "propuesto") {
+      // La acción está desactivada o requiere una persona: no se registra y se pasa a un asesor.
+      await escalate(tools, store, conversation.id, conversation.version);
+      result.status = "esperando_asesor";
+      result.escalation = "asesor_humano";
+      await say(["Gracias. Un asesor de D&J revisará tus datos y te escribirá por este chat para registrar tu solicitud."], "cotizacion");
+      return result;
+    }
+    const reference = registered.data as { id: string; reference: string };
     result.quoteReference = reference.reference;
     result.intent = "cotizacion";
     await say(
@@ -239,9 +248,10 @@ export async function handleIncomingBatch(deps: Deps, msgs: Incoming[], options:
 
   const status: ConversationStatus = turn.kind === "escalar" ? "esperando_asesor" : "bot";
   // Con la versión leída: si un asesor tomó la conversación mientras tanto, NO se escribe encima.
-  await store.updateConversation(
-    conversation.id,
-    {
+  const saved = await tools.runOrThrow(turn.kind === "escalar" ? escalarConversacion : actualizarTurno, IA_WHATSAPP, { store }, {
+    conversationId: conversation.id,
+    expectedVersion: conversation.version,
+    patch: {
       leadState: turn.lead,
       intent: turn.intent,
       escalationReason: turn.escalation,
@@ -250,8 +260,9 @@ export async function handleIncomingBatch(deps: Deps, msgs: Incoming[], options:
       pendingAction: turn.draft ? "confirmar_solicitud" : null,
       quoteDraft: turn.draft,
     },
-    conversation.version,
-  );
+  });
+  // Acción desactivada en tool_policies: la IA no guarda ni responde (los mensajes quedan guardados).
+  if (saved.status !== "ok") return result;
   Object.assign(result, {
     status,
     intent: turn.intent,
@@ -278,57 +289,11 @@ function collapseBurst(history: Array<{ role: "user" | "assistant"; content: str
   return [...history.slice(0, -count), { role: "user" as const, content: tail.map((m) => m.content).join("\n") }];
 }
 
-/** Registra las autorizaciones A y B y la solicitud (misma función y validación que la web). */
-async function registerQuote(
-  deps: Deps,
-  conversation: Conversation,
-  contactId: string,
-  evidenceMessageId: string | null,
-) {
-  const { store } = deps;
-  const draft = conversation.quoteDraft!;
-  const validation = validateAssistantForm(draft.insuranceType, {
-    ...draft.form,
-    privacyAccepted: true,
-    dataConsent: true,
+/** Pasa la conversación a una persona (ToolRunner: conversacion.escalar). */
+async function escalate(tools: ReturnType<typeof createToolRunner>, store: ChatStore, conversationId: string, version: number) {
+  await tools.runOrThrow(escalarConversacion, IA_WHATSAPP, { store }, {
+    conversationId,
+    expectedVersion: version,
+    patch: { status: "esperando_asesor", escalationReason: "asesor_humano", pendingAction: null },
   });
-  if (!validation.success) throw new Error("El borrador ya no es válido.");
-
-  await store.recordConsents(
-    (["politica_terminos", "tratamiento_datos"] as const).map((consentType) => ({
-      contactId,
-      conversationId: conversation.id,
-      consentType,
-      granted: true,
-      privacyPolicyVersion: LEGAL_VERSIONS.privacyPolicy,
-      termsVersion: LEGAL_VERSIONS.terms,
-      consentTextVersion: WHATSAPP_CONSENT_TEXT_VERSION,
-      evidenceMessageId,
-    })),
-  );
-
-  const consent = {
-    privacy_policy_version: LEGAL_VERSIONS.privacyPolicy,
-    terms_version: LEGAL_VERSIONS.terms,
-    accepted_at: new Date().toISOString(),
-    source: "whatsapp",
-    privacy_policy_read: true,
-    data_processing: true,
-    // C no se pide por WhatsApp en esta fase: un asesor la solicitará antes de compartir datos.
-    insurer_transfer: false,
-    consent_text_version: WHATSAPP_CONSENT_TEXT_VERSION,
-  };
-  const submission = buildQuoteSubmission(
-    draft.insuranceType,
-    validation.data as AssistantQuoteForm,
-    draft.notes ?? leadNotes(conversation.leadState),
-  );
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      return await store.submitQuoteRequest(newRequestReference(), submission, conversation.assignedAdvisorId, consent);
-    } catch (error) {
-      if (!(error instanceof DuplicateReferenceError)) throw error;
-    }
-  }
-  throw new Error("No fue posible generar una referencia única.");
 }

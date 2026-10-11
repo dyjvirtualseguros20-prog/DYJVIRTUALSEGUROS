@@ -33,9 +33,11 @@ Next.js 16 (App Router, `proxy.ts`), React 19, TypeScript, Tailwind 4, Zod 4, Su
 
 ## Migraciones Supabase aplicadas
 
-`0001` solicitudes y admins · `0002` asesores · `0003` columna `source` · `0004` correo opcional solo para `asistente_ia` · `0005` `consent` + `insurer_transmissions` (copia previa en `supabase/backups/`) · `0006` conversaciones de WhatsApp + `source = 'whatsapp'` (solo el rol `wa_bot` puede usarlo) (copia previa en `supabase/backups/2026-10-09_antes_de_0006.sql`) · `0007` `chat_conversations.version` + trigger que la sube en cada cambio de estado (rollback en `supabase/backups/2026-10-09_antes_de_0007.sql`) · `0008` `staff_users`, roles y políticas de asesor; `private.is_admin()` = administrador principal activo (rollback en `supabase/backups/2026-10-11_antes_de_0008.sql`; pruebas en `supabase/tests/0008_permisos.sql`).
+`0001` solicitudes y admins · `0002` asesores · `0003` columna `source` · `0004` correo opcional solo para `asistente_ia` · `0005` `consent` + `insurer_transmissions` (copia previa en `supabase/backups/`) · `0006` conversaciones de WhatsApp + `source = 'whatsapp'` (solo el rol `wa_bot` puede usarlo) (copia previa en `supabase/backups/2026-10-09_antes_de_0006.sql`) · `0007` `chat_conversations.version` + trigger que la sube en cada cambio de estado (rollback en `supabase/backups/2026-10-09_antes_de_0007.sql`) · `0008` `staff_users`, roles y políticas de asesor; `private.is_admin()` = administrador principal activo (rollback en `supabase/backups/2026-10-11_antes_de_0008.sql`; pruebas en `supabase/tests/0008_permisos.sql`) · `0009` `audit_events` (solo inserción), `log_staff_action()`, `tool_policies`, `action_proposals`, `tool_idempotency` (rollback en `supabase/backups/2026-10-11_antes_de_0009.sql`; pruebas en `supabase/tests/0009_auditoria.sql`).
 
 Fila por cliente (paso 2.3): Durable Object `ConversationQueue` en `dyj-whatsapp` (uno por número; orden, ráfagas de 2,5 s, reintentos). Verificación estándar: `npm run verificar-todo`.
+
+Acciones y auditoría (paso 2.5): todo cambio de estado de la IA (WhatsApp) y del panel pasa por el ToolRunner (`server/tools/runner.ts`; herramientas en `server/tools/staff.ts` y `workers/whatsapp/src/tools.ts`): actor, política, entrada, autorización, idempotencia y un evento en `audit_events` sin datos personales. Niveles LEER/PROPONER/EJECUTAR/ESCALAR; la IA no ganó autonomía. Para apagar una acción sin desplegar: `update tool_policies set enabled = false` (o `requires_human = true` para que la IA solo proponga).
 
 ## Cómo trabajar
 

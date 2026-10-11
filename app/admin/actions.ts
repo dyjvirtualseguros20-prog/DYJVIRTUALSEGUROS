@@ -5,9 +5,9 @@ import { redirect, unstable_rethrow } from "next/navigation";
 import { z } from "zod";
 import { fromLocalInputValue } from "@/lib/datetime";
 import { listAdvisors } from "@/server/advisors";
-import { signIn, signOut } from "@/server/auth";
-import { updateConversation } from "@/server/conversations";
-import { updateQuoteRequest } from "@/server/quoteRequests";
+import { requireAdmin, signIn, signOut } from "@/server/auth";
+import { actorFromSession, actualizarGestionSolicitud, gestionarConversacion } from "@/server/tools/staff";
+import { getStaffToolRunner, staffToolDeps } from "@/server/tools/staffRunner";
 import { CONVERSATION_STATUS_KEYS, REQUEST_STATUS_KEYS, type ConversationStatus, type RequestStatus } from "@/types";
 
 /* ─────────────────────────────── Sesión ─────────────────────────────── */
@@ -74,20 +74,25 @@ export async function updateRequestAction(id: string, _prev: UpdateState, formDa
   }
 
   const { status, advisorNotes, quoteAmount, contactedAt } = parsed.data;
-  try {
-    // updateQuoteRequest() exige sesión de asesor antes de modificar nada.
-    const updated = await updateQuoteRequest(id, {
+  // La acción pasa por el ToolRunner (política + auditoría) con la sesión de la persona (RLS).
+  const session = await requireAdmin();
+  const result = await (
+    await getStaffToolRunner()
+  ).run(actualizarGestionSolicitud, actorFromSession(session), staffToolDeps, {
+    id,
+    patch: {
       status,
       advisorNotes: advisorNotes || null,
       quoteAmount: quoteAmount ? Number(quoteAmount) : null,
       contactedAt: contactedAt ? fromLocalInputValue(contactedAt) : null,
-    });
-    if (!updated) return { error: "La solicitud no existe o no tienes permiso para modificarla." };
-  } catch (error) {
-    unstable_rethrow(error); // deja pasar la redirección a /admin/login si la sesión expiró
-    console.error("[admin/update]", error);
+    },
+  });
+  if (result.status === "error") {
+    unstable_rethrow(result.error); // deja pasar la redirección a /admin/login si la sesión expiró
+    console.error("[admin/update]", result.error);
     return { error: "No se pudieron guardar los cambios. Inténtalo de nuevo." };
   }
+  if (result.status !== "ok") return { error: "La solicitud no existe o no tienes permiso para modificarla." };
 
   revalidatePath("/admin");
   revalidatePath(`/admin/solicitudes/${id}`);
@@ -120,17 +125,21 @@ export async function updateConversationAction(
   const { assignedAdvisorId, take } = parsed.data;
   // "Tomar la conversación" siempre la deja en manos de un asesor.
   const status = take === "1" ? "asesor" : parsed.data.status;
-  try {
-    // El asesor asignado debe existir (la base de datos también lo exige).
-    const advisors = await listAdvisors();
-    if (assignedAdvisorId && !advisors.some((a) => a.id === assignedAdvisorId))
-      return { error: "Ese asesor no existe." };
-    // updateConversation() exige sesión de asesor antes de modificar nada.
-    const ok = await updateConversation(id, { status, assignedAdvisorId: assignedAdvisorId || null, take: take === "1" });
-    if (!ok) return { error: "La conversación no existe o no tienes permiso para hacer ese cambio." };
-  } catch (error) {
-    unstable_rethrow(error);
-    console.error("[admin/conversacion]", error);
+  // El asesor asignado debe existir (la base de datos también lo exige).
+  const advisors = await listAdvisors();
+  if (assignedAdvisorId && !advisors.some((a) => a.id === assignedAdvisorId)) return { error: "Ese asesor no existe." };
+  // ToolRunner (política + auditoría) con la sesión de la persona (RLS).
+  const session = await requireAdmin();
+  const result = await (
+    await getStaffToolRunner()
+  ).run(gestionarConversacion, actorFromSession(session), staffToolDeps, {
+    id,
+    patch: { status, assignedAdvisorId: assignedAdvisorId || null, take: take === "1" },
+  });
+  if (result.status === "error") {
+    unstable_rethrow(result.error);
+    console.error("[admin/conversacion]", result.error);
+    const error = result.error;
     return {
       error:
         error instanceof Error && error.message.includes("otra conversación abierta")
@@ -138,6 +147,7 @@ export async function updateConversationAction(
           : "No se pudieron guardar los cambios. Inténtalo de nuevo.",
     };
   }
+  if (result.status !== "ok") return { error: "La conversación no existe o no tienes permiso para hacer ese cambio." };
 
   revalidatePath("/admin/whatsapp");
   revalidatePath(`/admin/whatsapp/${id}`);

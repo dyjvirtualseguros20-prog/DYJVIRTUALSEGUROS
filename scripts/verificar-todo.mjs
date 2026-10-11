@@ -102,7 +102,7 @@ const pasos = [
   ["TypeScript (web)", () => run(bin("tsc"), ["--noEmit", "-p", "."])],
   ["TypeScript (Worker WhatsApp)", () => run(bin("tsc"), ["--noEmit", "-p", "."], join(root, "workers", "whatsapp"))],
   ["ESLint", () => run(bin("eslint"), ["."])],
-  ["Pruebas WhatsApp (Fase 1 + fila por cliente)", () => run("node", ["scripts/run-tests.mjs"], join(root, "workers", "whatsapp"))],
+  ["Pruebas WhatsApp (Fase 1 + fila + herramientas)", () => run("node", ["scripts/run-tests.mjs"], join(root, "workers", "whatsapp"))],
   ["Pruebas web + prompt", () => run("node", ["tests/run-tests.mjs"])],
   ["Secretos y archivos sensibles", verificarSecretos],
   ...(rapido

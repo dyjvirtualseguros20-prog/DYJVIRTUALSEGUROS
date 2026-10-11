@@ -9,6 +9,14 @@ import postgres from "postgres";
 import { EMPTY_LEAD, type LeadState, type QuoteDraft } from "@/lib/chat";
 import type { QuoteSubmission } from "@/lib/quoteSubmission";
 import type { EscalationReason, Intent } from "@/server/assistant/core";
+import { memoryAuditSink } from "@/server/tools/audit";
+import {
+  memoryIdempotencyStore,
+  memoryProposalSink,
+  type PolicyOverride,
+  type RunnerDeps,
+  staticPolicies,
+} from "@/server/tools/runner";
 
 export type ConversationStatus = "bot" | "esperando_asesor" | "asesor" | "cerrada";
 
@@ -95,8 +103,13 @@ export interface ChatStore {
   ): Promise<{ id: string; reference: string }>;
   /** Cierra la conversación abierta (solo para reiniciar pruebas de simulación). */
   closeOpenConversation(externalId: string): Promise<void>;
+  /** Auditoría, políticas, idempotencia y propuestas del ToolRunner (migración 0009). */
+  readonly tools: Required<RunnerDeps>;
   end(): Promise<void>;
 }
+
+/** Una reserva "en_curso" más vieja que esto se considera abandonada (el lote dura máx. 25 s). */
+const STALE_CLAIM_MINUTES = 2;
 
 /** Error de referencia repetida (se reintenta con otra). */
 export class DuplicateReferenceError extends Error {}
@@ -129,6 +142,8 @@ export function createPostgresStore(connectionString: string): ChatStore {
     idle_timeout: 5,
     max_lifetime: 60,
   });
+
+  const policyCache = new Map<string, PolicyOverride | null>();
 
   const toConversation = (r: Record<string, unknown>): Conversation => ({
     id: String(r.id),
@@ -270,6 +285,64 @@ export function createPostgresStore(connectionString: string): ChatStore {
           select id from public.chat_contacts where channel = 'whatsapp' and external_id = ${externalId})`;
     },
 
+    tools: {
+      // wa_bot solo puede INSERTAR eventos como IA/canal/sistema del canal whatsapp (RLS de 0009).
+      audit: {
+        async write(e) {
+          await sql`
+            insert into public.audit_events
+              (actor_type, actor_id, channel, action, level, resource_type, resource_id, outcome, reason,
+               error_message, idempotency_key, metadata)
+            values (${e.actorType}, ${e.actorId}, ${e.channel}, ${e.action}, ${e.level}, ${e.resourceType},
+                    ${e.resourceId}, ${e.outcome}, ${e.reason}, ${e.errorMessage}, ${e.idempotencyKey},
+                    ${sql.json(e.metadata as postgres.JSONValue)})`;
+        },
+      },
+      // Se lee una vez por lote (un store por lote).
+      policies: {
+        async get(action) {
+          if (policyCache.has(action)) return policyCache.get(action) ?? null;
+          const [r] = await sql`select enabled, requires_human from public.tool_policies where action = ${action}`;
+          const value: PolicyOverride | null = r ? { enabled: r.enabled, requiresHuman: r.requires_human } : null;
+          policyCache.set(action, value);
+          return value;
+        },
+      },
+      idempotency: {
+        async claim(key, action) {
+          const claimed = await sql`
+            insert into public.tool_idempotency (key, action, status) values (${key}, ${action}, 'en_curso')
+            on conflict (key) do update set status = 'en_curso'
+              where public.tool_idempotency.status = 'fallido'
+                 or (public.tool_idempotency.status = 'en_curso'
+                     and public.tool_idempotency.updated_at < now() - make_interval(mins => ${STALE_CLAIM_MINUTES}))
+            returning status`;
+          if (claimed.length) return { state: "claimed" };
+          const [r] = await sql`select status, result from public.tool_idempotency where key = ${key}`;
+          return r?.status === "completado" ? { state: "done", result: r.result } : { state: "busy" };
+        },
+        async complete(key, result) {
+          await sql`
+            update public.tool_idempotency set status = 'completado', result = ${sql.json((result ?? null) as postgres.JSONValue)}
+            where key = ${key}`;
+        },
+        async release(key) {
+          await sql`update public.tool_idempotency set status = 'fallido' where key = ${key}`;
+        },
+      },
+      // Sin SELECT para wa_bot: el duplicado se ignora sin leer (on conflict sin destino).
+      proposals: {
+        async propose(p) {
+          await sql`
+            insert into public.action_proposals
+              (action, proposed_by_type, proposed_by_id, channel, resource_type, resource_id, payload, idempotency_key)
+            values (${p.action}, ${p.actor.type}, ${p.actor.id}, ${p.actor.channel}, ${p.resourceType}, ${p.resourceId},
+                    ${sql.json(p.payload as postgres.JSONValue)}, ${p.idempotencyKey})
+            on conflict do nothing`;
+        },
+      },
+    },
+
     async end() {
       await sql.end({ timeout: 5 });
     },
@@ -302,8 +375,18 @@ type MemoryOp = "insertMessage" | "updateConversation" | "recentHistory";
 
 export function createMemoryStore(
   activeAdvisors: string[] = ["cristian", "jeisson"],
-): ChatStore & { state: MemoryState; failOnce(op: MemoryOp): void } {
+  policies: Record<string, PolicyOverride> = {},
+): ChatStore & {
+  state: MemoryState;
+  failOnce(op: MemoryOp): void;
+  audit: ReturnType<typeof memoryAuditSink>;
+  proposals: ReturnType<typeof memoryProposalSink>;
+  idempotency: ReturnType<typeof memoryIdempotencyStore>;
+} {
   const state: MemoryState = { contacts: [], conversations: [], messages: [], consents: [], quoteRequests: [] };
+  const audit = memoryAuditSink();
+  const proposals = memoryProposalSink();
+  const idempotency = memoryIdempotencyStore();
   let seq = 0;
   const id = () => `mem-${++seq}`;
   const pendingFailures: MemoryOp[] = [];
@@ -317,6 +400,10 @@ export function createMemoryStore(
   };
   return {
     state,
+    audit,
+    proposals,
+    idempotency,
+    tools: { audit, proposals, idempotency, policies: staticPolicies(policies) },
     failOnce(op) {
       pendingFailures.push(op);
     },

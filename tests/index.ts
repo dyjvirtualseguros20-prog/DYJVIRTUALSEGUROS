@@ -3,6 +3,7 @@ import { pruebasRoles } from "./admin/roles.test";
 import { pruebasRouter } from "./ai/router.test";
 import { informe } from "./harness";
 import { pruebaLineaBase } from "./prompt/linea-base";
+import { pruebasHerramientas } from "./tools/runner.test";
 import { pruebasAdaptadorWeb } from "./web/adaptador-web.test";
 
 const archivoLineaBase = process.env.LINEA_BASE_PROMPT ?? "tests/linea-base-prompt.json";
@@ -10,6 +11,7 @@ const archivoLineaBase = process.env.LINEA_BASE_PROMPT ?? "tests/linea-base-prom
 await pruebasAdaptadorWeb();
 await pruebasRouter();
 await pruebasRoles();
+await pruebasHerramientas();
 await pruebaLineaBase(archivoLineaBase, process.argv.includes("--registrar-linea-base"));
 
 if (!informe()) process.exitCode = 1;
