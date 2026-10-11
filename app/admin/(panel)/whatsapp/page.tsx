@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { formatDateTime } from "@/lib/datetime";
+import { isPrincipal } from "@/lib/staff";
 import { listAdvisors } from "@/server/advisors";
+import { requireAdmin } from "@/server/auth";
 import { listConversations } from "@/server/conversations";
 import { CONVERSATION_INTENTS, CONVERSATION_STATUSES, isConversationStatus } from "@/types";
 import { ConversationStatusBadge } from "@/components/admin/ConversationStatusBadge";
@@ -20,7 +22,11 @@ const formatNumber = (n: string) => (/^57\d{10}$/.test(n) ? `+57 ${n.slice(2, 5)
 export default async function WhatsAppConversationsPage({ searchParams }: Props) {
   const estado = one((await searchParams).estado);
   const status = isConversationStatus(estado) ? estado : undefined;
-  const [conversations, advisors] = await Promise.all([listConversations({ status }), listAdvisors()]);
+  const [session, conversations, advisors] = await Promise.all([
+    requireAdmin(),
+    listConversations({ status }),
+    listAdvisors(),
+  ]);
   const advisorName = new Map(advisors.map((a) => [a.id, a.name]));
 
   const filterClass = (active: boolean) =>
@@ -34,6 +40,7 @@ export default async function WhatsAppConversationsPage({ searchParams }: Props)
       <p className="mt-1 text-sm text-slate-500">
         {conversations.length === 1 ? "1 conversación" : `${conversations.length} conversaciones`}
         {status ? ` · ${CONVERSATION_STATUSES[status]}` : ""}
+        {isPrincipal(session) ? "" : " · Solo ves las conversaciones asignadas a ti."}
       </p>
 
       <nav aria-label="Filtrar por estado" className="mt-5 flex flex-wrap gap-2">

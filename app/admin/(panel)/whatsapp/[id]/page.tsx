@@ -4,7 +4,9 @@ import { notFound } from "next/navigation";
 import { formatDateTime } from "@/lib/datetime";
 import { cn } from "@/lib/format";
 import { getProduct } from "@/lib/insurance";
+import { isPrincipal } from "@/lib/staff";
 import { listAdvisors } from "@/server/advisors";
+import { requireAdmin } from "@/server/auth";
 import { getConversation } from "@/server/conversations";
 import { CONVERSATION_INTENTS, ESCALATION_REASONS, isInsuranceType } from "@/types";
 import { ConversationManageForm } from "@/components/admin/ConversationManageForm";
@@ -28,7 +30,7 @@ const formatNumber = (n: string) => (/^57\d{10}$/.test(n) ? `+57 ${n.slice(2, 5)
 
 export default async function ConversationDetailPage({ params }: Props) {
   const { id } = await params;
-  const [conversation, advisors] = await Promise.all([getConversation(id), listAdvisors()]);
+  const [session, conversation, advisors] = await Promise.all([requireAdmin(), getConversation(id), listAdvisors()]);
   if (!conversation) notFound();
 
   const lead = conversation.leadState as { insuranceType?: string; fields?: Record<string, string> };
@@ -99,6 +101,7 @@ export default async function ConversationDetailPage({ params }: Props) {
           <ConversationManageForm
             id={conversation.id}
             advisors={advisors}
+            canReassign={isPrincipal(session)}
             takenBy={conversation.takenBy}
             initial={{ status: conversation.status, assignedAdvisorId: conversation.assignedAdvisorId }}
           />

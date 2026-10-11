@@ -127,7 +127,7 @@ export async function updateConversationAction(
       return { error: "Ese asesor no existe." };
     // updateConversation() exige sesión de asesor antes de modificar nada.
     const ok = await updateConversation(id, { status, assignedAdvisorId: assignedAdvisorId || null, take: take === "1" });
-    if (!ok) return { error: "La conversación no existe o no tienes permiso para modificarla." };
+    if (!ok) return { error: "La conversación no existe o no tienes permiso para hacer ese cambio." };
   } catch (error) {
     unstable_rethrow(error);
     console.error("[admin/conversacion]", error);

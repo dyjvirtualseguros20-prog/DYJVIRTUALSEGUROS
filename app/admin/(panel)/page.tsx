@@ -3,7 +3,9 @@ import Link from "next/link";
 import { formatPhone } from "@/lib/admin";
 import { formatDateTime } from "@/lib/datetime";
 import { getProduct } from "@/lib/insurance";
+import { isPrincipal } from "@/lib/staff";
 import { listAdvisors } from "@/server/advisors";
+import { requireAdmin } from "@/server/auth";
 import { listQuoteRequests } from "@/server/quoteRequests";
 import {
   isInsuranceType,
@@ -33,6 +35,8 @@ export default async function AdminRequestsPage({ searchParams }: Props) {
   const hasta = one(params.hasta);
   const asesor = one(params.asesor);
 
+  const session = await requireAdmin();
+  const principal = isPrincipal(session);
   const advisors = await listAdvisors();
   const advisorName = new Map(advisors.map((a) => [a.id, a.name]));
   /** Nombre del asesor (o su id si ya no existe), o "Sin asesor". */
@@ -43,7 +47,8 @@ export default async function AdminRequestsPage({ searchParams }: Props) {
     status: isRequestStatus(estado) ? estado : undefined,
     from: DATE.test(desde) ? desde : undefined,
     to: DATE.test(hasta) ? hasta : undefined,
-    advisorId: asesor === NO_ADVISOR || advisorName.has(asesor) ? asesor : undefined,
+    // Un asesor ya solo recibe lo suyo (RLS): el filtro por asesor es solo del administrador.
+    advisorId: principal && (asesor === NO_ADVISOR || advisorName.has(asesor)) ? asesor : undefined,
   };
   const hasFilters = Object.values(filters).some(Boolean);
 
@@ -57,6 +62,7 @@ export default async function AdminRequestsPage({ searchParams }: Props) {
           <p className="mt-1 text-sm text-slate-500">
             {requests.length === 1 ? "1 solicitud" : `${requests.length} solicitudes`}
             {hasFilters ? " con los filtros aplicados" : ""}
+            {principal ? "" : " · Solo ves las solicitudes que llegaron por tu enlace."}
           </p>
         </div>
       </div>
@@ -68,6 +74,7 @@ export default async function AdminRequestsPage({ searchParams }: Props) {
         hasta={filters.to ?? ""}
         asesor={filters.advisorId ?? ""}
         advisors={advisors}
+        showAdvisor={principal}
       />
 
       {requests.length === 0 ? (

@@ -3,8 +3,9 @@ import { logoutAction } from "@/app/admin/actions";
 import { Container } from "@/components/ui/Container";
 import { Icon } from "@/components/ui/Icon";
 import { Logo } from "@/components/ui/Logo";
+import { STAFF_ROLES, type StaffRole } from "@/lib/staff";
 
-export function AdminHeader({ email }: { email: string }) {
+export function AdminHeader({ email, role }: { email: string; role: StaffRole }) {
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur-xl">
       <Container className="flex h-16 items-center justify-between gap-4">
@@ -29,6 +30,9 @@ export function AdminHeader({ email }: { email: string }) {
         <div className="flex items-center gap-2">
           <span className="hidden max-w-48 truncate text-xs text-slate-500 md:block" title={email}>
             {email}
+          </span>
+          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+            {STAFF_ROLES[role]}
           </span>
           <Link
             href="/"

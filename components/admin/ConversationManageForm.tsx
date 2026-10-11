@@ -14,10 +14,12 @@ interface Props {
   advisors: Advisor[];
   initial: { status: ConversationStatus; assignedAdvisorId: string | null };
   takenBy: string | null;
+  /** Solo el administrador reasigna; un asesor ve su asignación fija. */
+  canReassign: boolean;
 }
 
 /** Tomar la conversación, asignarla a un asesor y cambiar su estado. */
-export function ConversationManageForm({ id, advisors, initial, takenBy }: Props) {
+export function ConversationManageForm({ id, advisors, initial, takenBy, canReassign }: Props) {
   const [result, action, pending] = useActionState<UpdateState, FormData>(updateConversationAction.bind(null, id), {});
   const [status, setStatus] = useState<ConversationStatus>(initial.status);
   const [advisorId, setAdvisorId] = useState(initial.assignedAdvisorId ?? "");
@@ -38,9 +40,10 @@ export function ConversationManageForm({ id, advisors, initial, takenBy }: Props
         </label>
         <select
           id="assignedAdvisorId"
-          name="assignedAdvisorId"
+          name={canReassign ? "assignedAdvisorId" : undefined}
           value={advisorId}
           onChange={(e) => setAdvisorId(e.target.value)}
+          disabled={!canReassign}
           className={control}
         >
           <option value="">Sin asesor</option>
@@ -51,6 +54,8 @@ export function ConversationManageForm({ id, advisors, initial, takenBy }: Props
             </option>
           ))}
         </select>
+        {/* Un select deshabilitado no se envía: el asesor envía su asignación actual. */}
+        {!canReassign && <input type="hidden" name="assignedAdvisorId" value={advisorId} />}
       </div>
 
       <div className="space-y-2">

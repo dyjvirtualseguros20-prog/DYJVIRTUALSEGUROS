@@ -3,9 +3,10 @@ import "server-only";
 /**
  * CONVERSACIONES DE WHATSAPP para el panel /admin
  * ───────────────────────────────────────────────
- * Lectura y cambios con la SESIÓN del asesor: Row Level Security (private.is_admin())
- * garantiza que solo un administrador vea o modifique algo. El panel solo puede cambiar
- * el estado, el asesor asignado y quién tomó la conversación (permisos de columna en 0006).
+ * Lectura y cambios con la SESIÓN del panel. Row Level Security decide qué filas ve cada
+ * uno: el administrador principal, todas; un asesor, solo las conversaciones asignadas a
+ * él (0008). El panel solo puede cambiar el estado, el asesor asignado y quién tomó la
+ * conversación (permisos de columna en 0006); un asesor no puede reasignarla a otro.
  */
 import type {
   ConversationDetail,
@@ -14,6 +15,7 @@ import type {
   ConversationSummary,
   ConversationUpdate,
 } from "@/types";
+import { canAssignConversation } from "@/lib/staff";
 import { requireAdmin } from "./auth";
 import { getBackend } from "./env";
 import { createSessionClient } from "./supabase";
@@ -133,6 +135,8 @@ export async function getConversation(id: string): Promise<ConversationDetail | 
 export async function updateConversation(id: string, patch: ConversationUpdate): Promise<boolean> {
   const session = await requireAdmin();
   if (!enabled() || !UUID.test(id)) return false;
+  // La base de datos también lo impide (RLS); aquí se rechaza antes de intentarlo.
+  if (!canAssignConversation(session, patch.assignedAdvisorId)) return false;
   const supabase = await createSessionClient();
   const now = new Date().toISOString();
   const { data, error } = await supabase

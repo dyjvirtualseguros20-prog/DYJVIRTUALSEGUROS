@@ -15,7 +15,7 @@ export default async function PanelLayout({ children }: { children: ReactNode })
 
   return (
     <>
-      <AdminHeader email={session.email} />
+      <AdminHeader email={session.email} role={session.role} />
       {devMode && (
         <div className="border-b border-amber-200 bg-amber-50">
           <Container className="flex items-start gap-2 py-2.5 text-xs text-amber-900 sm:items-center">
