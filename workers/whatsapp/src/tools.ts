@@ -11,6 +11,8 @@
  *   conversacion.escalar           ESCALAR   pasar la conversación a una persona
  *   solicitud.registrar            EJECUTAR  solo con el ACEPTO del cliente (autorizaciones A y B)
  *   conversacion.asignar_asesor    PROPONER  requiere una persona: la IA solo puede proponerla
+ *   contexto.consultar_solicitudes LEER      estado real de las solicitudes de ESE contacto
+ *   solicitud.pedir_revision       PROPONER  "está muy caro / otra opción": lo decide un asesor
  */
 import { z } from "zod";
 import { LEGAL_VERSIONS } from "@/lib/legal";
@@ -18,7 +20,13 @@ import { buildQuoteSubmission, newRequestReference } from "@/lib/quoteSubmission
 import { validateAssistantForm, type AssistantQuoteForm } from "@/lib/validation/quoteSchemas";
 import { leadNotes } from "@/server/assistant/lead";
 import type { Actor, ToolDefinition } from "@/server/tools/runner";
-import { type ChatStore, type Conversation, type ConversationPatch, DuplicateReferenceError } from "./store";
+import {
+  type ChatStore,
+  type ContactRequest,
+  type Conversation,
+  type ConversationPatch,
+  DuplicateReferenceError,
+} from "./store";
 
 /**
  * Versión del mensaje de autorización que se muestra por WhatsApp. Reutiliza los textos vigentes
@@ -117,6 +125,8 @@ export const registrarSolicitud: ToolDefinition<RegisterInput, { id: string; ref
     // y el asistente vuelve a pedir la confirmación: nunca se crea una solicitud doble.
     const claimed = await store.updateConversation(conversation.id, { pendingAction: null }, conversation.version);
     const reference = await registerQuote(store, conversation, i.contactId, i.evidenceMessageId);
+    // Contacto ↔ solicitud ↔ conversación (para el seguimiento: "¿qué pasó con mi cotización?").
+    await store.linkContactRequest(i.contactId, reference.id, conversation.id);
     await store.updateConversation(
       conversation.id,
       { quoteDraft: null, quoteRequestId: reference.id, intent: "cotizacion" },
@@ -205,3 +215,36 @@ export const asignarAsesor: ToolDefinition<z.infer<typeof assignInput>, never, W
   },
   summarize: (i) => ({ advisorId: i.advisorId }),
 };
+
+/* ─────────────────────────────── Contexto del cliente ─────────────────────────────── */
+
+const contactInput = z.object({ contactId: z.string().min(1), conversationId: z.string().min(1) });
+
+/** LEER: solicitudes registradas desde este mismo contacto (nunca las de otro número). */
+export const consultarSolicitudes: ToolDefinition<z.infer<typeof contactInput>, ContactRequest[], WaToolDeps> = {
+  name: "contexto.consultar_solicitudes",
+  level: "leer",
+  actors: ["ia"],
+  input: contactInput,
+  resource: (i) => ({ type: "chat_contact", id: i.contactId }),
+  execute: ({ deps }, i) => deps.store.contactRequests(i.contactId),
+  summarize: (_i, out) => ({ solicitudes: out?.length ?? 0 }),
+};
+
+/**
+ * PROPONER: el cliente pide otra opción, revisar el precio o un descuento. La IA no tiene precios
+ * ni puede negociar: deja la petición pendiente para su asesor (action_proposals) y escala.
+ */
+export const pedirRevision: ToolDefinition<z.infer<typeof contactInput> & { solicitudes: number }, never, WaToolDeps> =
+  {
+    name: "solicitud.pedir_revision",
+    level: "proponer",
+    actors: ["ia"],
+    requiresHuman: true,
+    input: contactInput.extend({ solicitudes: z.number().int().min(0) }),
+    resource: (i) => ({ type: "chat_conversation", id: i.conversationId }),
+    async execute() {
+      throw new Error("Solo un asesor puede revisar opciones o precios.");
+    },
+    summarize: (i) => ({ solicitudes: i.solicitudes }),
+  };

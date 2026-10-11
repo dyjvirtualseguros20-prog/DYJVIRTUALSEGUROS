@@ -6,6 +6,8 @@
  *     ├─ datos de salud                        → se ocultan ANTES de guardar cada mensaje
  *     ├─ conversación con un asesor            → se guardan y la IA NO responde
  *     ├─ esperando confirmación de solicitud   → "ACEPTO" registra autorizaciones + solicitud
+ *     ├─ "¿qué pasó con mi cotización?"        → estado REAL de sus solicitudes (followup.ts)
+ *     ├─ "muy caro / otra opción"              → propuesta para su asesor + pasa a una persona
  *     └─ resto → UN turno del núcleo (server/assistant/core.ts) con la ráfaga como un solo mensaje
  *           ├─ escalar  → estado esperando_asesor (la IA deja de responder)
  *           ├─ borrador → resumen + autorizaciones, estado de confirmación
@@ -27,7 +29,15 @@ import { redactHealthData } from "@/server/assistant/grounding";
 import { createToolRunner } from "@/server/tools/runner";
 import type { ChatStore, ConversationStatus } from "./store";
 import type { OutboundSender } from "./sender";
-import { actualizarTurno, escalarConversacion, IA_WHATSAPP, registrarSolicitud } from "./tools";
+import { ALTERNATIVE_REPLY, asksForAlternative, asksQuoteStatus, statusReply } from "./followup";
+import {
+  actualizarTurno,
+  consultarSolicitudes,
+  escalarConversacion,
+  IA_WHATSAPP,
+  pedirRevision,
+  registrarSolicitud,
+} from "./tools";
 
 export { WHATSAPP_CONSENT_TEXT_VERSION } from "./tools";
 
@@ -44,6 +54,8 @@ export interface Incoming {
   simulated: boolean;
   /** La fila ya ocultó datos de salud de este texto antes de guardarlo (se conserva el aviso). */
   healthRedacted?: boolean;
+  /** Asesor del enlace por el que llegó el cliente (solo cuenta si es de la base central). */
+  referralAdvisorId?: string | null;
 }
 
 export interface Outcome {
@@ -127,10 +139,16 @@ export async function handleIncomingBatch(deps: Deps, msgs: Incoming[], options:
   if (msgs.some((m) => m.from.replace(/\D/g, "") !== from)) throw new Error("Un lote solo puede tener mensajes de un número.");
   const name = [...msgs].reverse().find((m) => m.name?.trim())?.name?.trim().slice(0, 120) || null;
 
-  const contact = await store.upsertContact(from, name);
-  // Asesor de la conversación: el del contacto, o el predeterminado si está activo (si no, sin asesor).
-  let advisorId = contact.advisorId;
-  if (!advisorId && deps.defaultAdvisorId && (await store.isActiveAdvisor(deps.defaultAdvisorId)))
+  // Atribución: asesor del enlace de llegada, solo si es activo y de la base central (no Jeisson).
+  const referral = msgs.find((m) => m.referralAdvisorId)?.referralAdvisorId ?? null;
+  const contact = await store.upsertContact(
+    from,
+    name,
+    referral && (await store.isAssignableAdvisor(referral)) ? referral : null,
+  );
+  // Asesor de la conversación: el del contacto, o el predeterminado; siempre de la base central.
+  let advisorId = contact.advisorId && (await store.isAssignableAdvisor(contact.advisorId)) ? contact.advisorId : null;
+  if (!advisorId && deps.defaultAdvisorId && (await store.isAssignableAdvisor(deps.defaultAdvisorId)))
     advisorId = deps.defaultAdvisorId;
   const conversation = await store.openConversation(contact, advisorId, initialLead(from));
 
@@ -235,7 +253,34 @@ export async function handleIncomingBatch(deps: Deps, msgs: Incoming[], options:
     return result;
   }
 
-  // ── 3. Turno del núcleo común (la ráfaga se interpreta como un solo mensaje) ──
+  // ── 3. Seguimiento con datos reales (nunca inventados) ──
+  const said = nuevos.map((n) => n.original).join("\n");
+  const wantsStatus = asksQuoteStatus(said);
+  const wantsAlternative = asksForAlternative(said);
+  if (wantsStatus || wantsAlternative) {
+    const read = await tools.runOrThrow(consultarSolicitudes, IA_WHATSAPP, { store }, { contactId: contact.id, conversationId: conversation.id });
+    const requests = read.status === "ok" ? read.data : [];
+    if (wantsAlternative && requests.length) {
+      // La IA no tiene precios ni negocia: deja la petición pendiente para el asesor y escala.
+      await tools.runOrThrow(
+        pedirRevision,
+        IA_WHATSAPP,
+        { store },
+        { contactId: contact.id, conversationId: conversation.id, solicitudes: requests.length },
+        { idempotencyKey: `solicitud.pedir_revision:${conversation.id}:${nuevos[0].messageId}` },
+      );
+      await escalate(tools, store, conversation.id, conversation.version);
+      Object.assign(result, { status: "esperando_asesor", escalation: "asesor_humano" });
+      await say([ALTERNATIVE_REPLY], conversation.intent);
+      return result;
+    }
+    if (wantsStatus) {
+      await say([statusReply(requests, conversation.pendingAction === "confirmar_solicitud")], conversation.intent);
+      return result;
+    }
+  }
+
+  // ── 4. Turno del núcleo común (la ráfaga se interpreta como un solo mensaje) ──
   const history = collapseBurst(await store.recentHistory(conversation.id, HISTORY_WINDOW + nuevos.length - 1), nuevos.length);
   const turn = await runAssistantTurn({
     history,

@@ -303,6 +303,112 @@ await prueba("T9. Compatibilidad: conversación con un asesor → la IA no actú
   check(out.replies.length === 0 && store.audit.events.length === antes, "sin respuesta y sin acciones de la IA");
 });
 
+await prueba(
+  "T10. MVP de punta a punta: cotiza, recuerda, registra, informa el estado real y escala",
+  async (check) => {
+    const store = createMemoryStore(["cristian", "prueba-mvp"]);
+    const from = "573000000777";
+    const go = (text: string, messageId?: string, asesor?: string) =>
+      handleIncoming(deps(store), {
+        from,
+        text,
+        messageId: messageId ?? `sim-mvp-${++seq}`,
+        simulated: true,
+        referralAdvisorId: asesor,
+      });
+
+    const r1 = await go("Hola, quiero cotizar un seguro todo riesgo para mi carro.", undefined, "prueba-mvp");
+    check(
+      r1.intent === "cotizacion" && r1.missing.length > 0,
+      `entiende que quiere cotizar (faltan: ${r1.missing.join(", ")})`,
+    );
+    const r2 = await go("Es una Mazda CX-5 2024");
+    check(
+      ["brand", "year"].every((f) => r2.known.includes(f)) &&
+        !r2.missing.includes("brand") &&
+        !r2.missing.includes("year"),
+      "recuerda marca y año; no los vuelve a pedir",
+    );
+    const r3 = await go("Me llamo Andrea Prueba Ruiz");
+    check(r3.known.includes("brand") && r3.known.includes("fullName"), "conserva lo anterior y suma el nombre");
+    await go("mi cédula es 52123456 y vivo en Medellín");
+    const r5 = await go("placa XYZ987, uso particular");
+    check(
+      r5.missing.length === 0 && /responde ACEPTO/.test(r5.replies.at(-1) ?? ""),
+      `completa: pide confirmación (faltan: ${r5.missing.join(", ") || "—"})`,
+    );
+
+    const before = await go("¿Qué pasó con mi cotización?");
+    check(/falta tu confirmación/.test(before.replies[0] ?? ""), "antes de ACEPTO: dice que aún no está registrada");
+
+    const ok = await go("ACEPTO", "sim-mvp-acepto");
+    const dup = await go("ACEPTO", "sim-mvp-acepto");
+    const again = await go("acepto");
+    check(
+      Boolean(ok.quoteReference) && dup.duplicate && !again.quoteReference,
+      "ACEPTO registra; repetido o reenviado no registra otra",
+    );
+    check(
+      store.state.quoteRequests.length === 1 && store.state.quoteRequests[0].advisorId === "prueba-mvp",
+      "UNA solicitud, asignada al asesor del enlace",
+    );
+    check(
+      store.state.links.length === 1 && store.state.links[0].contactId === store.state.contacts[0].id,
+      "vinculada al contacto",
+    );
+
+    const st = await go("¿Qué pasó con mi cotización?");
+    check(
+      new RegExp(ok.quoteReference!).test(st.replies[0] ?? "") && /Nueva solicitud/.test(st.replies[0] ?? ""),
+      "estado real: referencia y «Nueva solicitud»",
+    );
+    check(
+      /Todavía no tengo el resultado de las aseguradoras/.test(st.replies[0] ?? "") &&
+        !/\$|\d{3}\.\d{3}/.test(st.replies[0] ?? ""),
+      "no inventa resultado ni precio",
+    );
+    store.state.quoteRequests[0].status = "cotizando";
+    const st2 = await go("como va mi solicitud");
+    check(/«Cotizando»/.test(st2.replies[0] ?? ""), "si el asesor cambia el estado, lo informa (los datos mandan)");
+
+    const alt = await go("Está muy caro, quiero otra opción");
+    check(
+      alt.status === "esperando_asesor" && /no manejo precios/.test(alt.replies[0] ?? ""),
+      "«muy caro»: no negocia ni inventa, pasa a su asesor",
+    );
+    check(
+      store.proposals.proposals.some((p) => p.action === "solicitud.pedir_revision"),
+      "queda una propuesta pendiente para el asesor",
+    );
+    check(
+      eventos(store, "contexto.consultar_solicitudes").length === 4,
+      "las consultas de contexto quedan auditadas (LEER)",
+    );
+
+    // Otro número no ve las solicitudes de este contacto.
+    const otro = await handleIncoming(deps(store), {
+      from: "573000000778",
+      text: "¿Qué pasó con mi cotización?",
+      messageId: "sim-mvp-otro",
+      simulated: true,
+    });
+    check(/Todavía no tengo una solicitud/.test(otro.replies[0] ?? ""), "otro número no ve solicitudes ajenas");
+
+    // Un enlace de un asesor que no es de la base central (Jeisson) no asigna nada.
+    const j = await handleIncoming(deps(store), {
+      from: "573000000779",
+      text: "Hola, quiero cotizar mi carro",
+      messageId: "sim-mvp-j",
+      simulated: true,
+      referralAdvisorId: "jeisson",
+    });
+    check(
+      store.state.conversations.find((c) => c.id === j.conversationId)?.assignedAdvisorId === null,
+      "Jeisson no recibe clientes de la base central",
+    );
+  },
+);
+
 /* ─────────────────────────── informe ─────────────────────────── */
 
 for (const r of results) {

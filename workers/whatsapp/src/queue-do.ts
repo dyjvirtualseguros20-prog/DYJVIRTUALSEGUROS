@@ -13,7 +13,7 @@ import type { Env } from "./env";
 import { OrderedQueue, type QueueMessage, type QueueRow, type QueueStorage } from "./queue";
 import { simulatedSender } from "./sender";
 import { createPostgresStore } from "./store";
-import { connectionTestModel } from "./testModel";
+import { fakeModel } from "./simulationModel";
 
 /** Tope de tiempo de un lote (base de datos + IA). Si se supera, el lote falla y se reintenta. */
 const BATCH_TIMEOUT_MS = 25_000;
@@ -182,7 +182,7 @@ export class ConversationQueue extends DurableObject<Env> {
       throw new AiError("Fallo simulado para la prueba de recuperación.", "failed");
     const models =
       opts.modelo === "prueba"
-        ? singleModel(connectionTestModel)
+        ? singleModel(fakeModel())
         : createWorkersAiRouter(this.env.AI, { modelOverride: this.env.WORKERS_AI_MODEL, sink: consoleUsageSink });
     const store = createPostgresStore(this.env.HYPERDRIVE.connectionString);
     try {
@@ -196,6 +196,7 @@ export class ConversationQueue extends DurableObject<Env> {
             messageId: m.id,
             simulated: m.simulated,
             healthRedacted: m.options.salud_oculta === "1",
+            referralAdvisorId: m.options.asesor ?? null,
           })),
           { resume },
         ),

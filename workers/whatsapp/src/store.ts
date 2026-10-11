@@ -76,8 +76,21 @@ export type ConversationPatch = Partial<
   >
 >;
 
+/** Solicitud del contacto: solo datos no sensibles (referencia, tipo, estado y fechas). */
+export interface ContactRequest {
+  reference: string;
+  insuranceType: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ChatStore {
-  upsertContact(externalId: string, displayName: string | null): Promise<Contact>;
+  /**
+   * Crea o actualiza el contacto. `referralAdvisorId` (asesor del enlace por el que llegó) solo se
+   * guarda si el contacto todavía no tiene asesor; el canal ya verificó que es de la base central.
+   */
+  upsertContact(externalId: string, displayName: string | null, referralAdvisorId?: string | null): Promise<Contact>;
   /** Conversación abierta del contacto, o una nueva con el lead inicial. */
   openConversation(contact: Contact, advisorId: string | null, initialLead: LeadState): Promise<Conversation>;
   /** null si el mensaje ya existía (mismo external_id): mensaje duplicado. */
@@ -93,7 +106,12 @@ export interface ChatStore {
   messageExists(externalId: string): Promise<boolean>;
   recordConsents(rows: ConsentRow[]): Promise<void>;
   countRecentInbound(conversationId: string, minutes: number): Promise<number>;
-  isActiveAdvisor(id: string): Promise<boolean>;
+  /** Asesor activo y de la base central (advisors.central_base, migración 0010). */
+  isAssignableAdvisor(id: string): Promise<boolean>;
+  /** Relaciona la solicitud registrada con el contacto y la conversación (chat_contact_requests). */
+  linkContactRequest(contactId: string, quoteRequestId: string, conversationId: string): Promise<void>;
+  /** Solicitudes de ESTE contacto (public.wa_contact_requests): nunca las de otro. */
+  contactRequests(contactId: string): Promise<ContactRequest[]>;
   /** Registra la solicitud con public.submit_quote_request (source = 'whatsapp'). */
   submitQuoteRequest(
     reference: string,
@@ -160,12 +178,13 @@ export function createPostgresStore(connectionString: string): ChatStore {
   });
 
   return {
-    async upsertContact(externalId, displayName) {
+    async upsertContact(externalId, displayName, referralAdvisorId) {
       const [r] = await sql`
-        insert into public.chat_contacts (channel, external_id, display_name)
-        values ('whatsapp', ${externalId}, ${displayName})
+        insert into public.chat_contacts (channel, external_id, display_name, advisor_id)
+        values ('whatsapp', ${externalId}, ${displayName}, ${referralAdvisorId ?? null})
         on conflict (channel, external_id) do update
-          set display_name = coalesce(excluded.display_name, public.chat_contacts.display_name)
+          set display_name = coalesce(excluded.display_name, public.chat_contacts.display_name),
+              advisor_id = coalesce(public.chat_contacts.advisor_id, excluded.advisor_id)
         returning id, external_id, display_name, advisor_id`;
       return { id: r.id, externalId: r.external_id, displayName: r.display_name, advisorId: r.advisor_id };
     },
@@ -259,9 +278,27 @@ export function createPostgresStore(connectionString: string): ChatStore {
       return r.n;
     },
 
-    async isActiveAdvisor(id) {
-      const rows = await sql`select 1 from public.advisors where id = ${id} and active`;
+    async isAssignableAdvisor(id) {
+      const rows = await sql`select 1 from public.advisors where id = ${id} and active and central_base`;
       return rows.length > 0;
+    },
+
+    async linkContactRequest(contactId, quoteRequestId, conversationId) {
+      await sql`
+        insert into public.chat_contact_requests (quote_request_id, contact_id, conversation_id)
+        values (${quoteRequestId}, ${contactId}, ${conversationId})
+        on conflict do nothing`;
+    },
+
+    async contactRequests(contactId) {
+      const rows = await sql`select * from public.wa_contact_requests(${contactId})`;
+      return rows.map((r) => ({
+        reference: String(r.reference),
+        insuranceType: String(r.insurance_type),
+        status: String(r.status),
+        createdAt: new Date(r.created_at).toISOString(),
+        updatedAt: new Date(r.updated_at).toISOString(),
+      }));
     },
 
     async submitQuoteRequest(reference, s, advisorId, consent) {
@@ -356,7 +393,16 @@ export interface MemoryState {
   conversations: Conversation[];
   messages: Array<NewMessage & { id: string; createdAt: number }>;
   consents: ConsentRow[];
-  quoteRequests: Array<{ id: string; reference: string; submission: QuoteSubmission; advisorId: string | null; consent: Record<string, unknown> }>;
+  quoteRequests: Array<{
+    id: string;
+    reference: string;
+    submission: QuoteSubmission;
+    advisorId: string | null;
+    consent: Record<string, unknown>;
+    status: string;
+    createdAt: string;
+  }>;
+  links: Array<{ contactId: string; quoteRequestId: string; conversationId: string }>;
 }
 
 /** Campos que, al cambiar, suben la versión (igual que el trigger de la migración 0007). */
@@ -374,7 +420,8 @@ const VERSIONED: Array<keyof Conversation> = [
 type MemoryOp = "insertMessage" | "updateConversation" | "recentHistory";
 
 export function createMemoryStore(
-  activeAdvisors: string[] = ["cristian", "jeisson"],
+  /** Asesores activos de la base central (Jeisson no participa). */
+  assignableAdvisors: string[] = ["cristian"],
   policies: Record<string, PolicyOverride> = {},
 ): ChatStore & {
   state: MemoryState;
@@ -383,7 +430,7 @@ export function createMemoryStore(
   proposals: ReturnType<typeof memoryProposalSink>;
   idempotency: ReturnType<typeof memoryIdempotencyStore>;
 } {
-  const state: MemoryState = { contacts: [], conversations: [], messages: [], consents: [], quoteRequests: [] };
+  const state: MemoryState = { contacts: [], conversations: [], messages: [], consents: [], quoteRequests: [], links: [] };
   const audit = memoryAuditSink();
   const proposals = memoryProposalSink();
   const idempotency = memoryIdempotencyStore();
@@ -407,10 +454,13 @@ export function createMemoryStore(
     failOnce(op) {
       pendingFailures.push(op);
     },
-    async upsertContact(externalId, displayName) {
+    async upsertContact(externalId, displayName, referralAdvisorId) {
       let c = state.contacts.find((x) => x.externalId === externalId);
-      if (!c) state.contacts.push((c = { id: id(), externalId, displayName, advisorId: null }));
-      else if (displayName) c.displayName = displayName;
+      if (!c) state.contacts.push((c = { id: id(), externalId, displayName, advisorId: referralAdvisorId ?? null }));
+      else {
+        if (displayName) c.displayName = displayName;
+        c.advisorId ??= referralAdvisorId ?? null;
+      }
       return { ...c };
     },
     async openConversation(contact, advisorId, initialLead) {
@@ -467,11 +517,28 @@ export function createMemoryStore(
     async countRecentInbound(conversationId) {
       return state.messages.filter((m) => m.conversationId === conversationId && m.direction === "entrante").length;
     },
-    async isActiveAdvisor(advisor) {
-      return activeAdvisors.includes(advisor);
+    async isAssignableAdvisor(advisor) {
+      return assignableAdvisors.includes(advisor);
+    },
+    async linkContactRequest(contactId, quoteRequestId, conversationId) {
+      if (!state.links.some((l) => l.quoteRequestId === quoteRequestId)) state.links.push({ contactId, quoteRequestId, conversationId });
+    },
+    async contactRequests(contactId) {
+      return state.links
+        .filter((l) => l.contactId === contactId)
+        .map((l) => state.quoteRequests.find((q) => q.id === l.quoteRequestId)!)
+        .reverse()
+        .slice(0, 5)
+        .map((q) => ({
+          reference: q.reference,
+          insuranceType: q.submission.insuranceType,
+          status: q.status,
+          createdAt: q.createdAt,
+          updatedAt: q.createdAt,
+        }));
     },
     async submitQuoteRequest(reference, submission, advisorId, consent) {
-      const row = { id: id(), reference, submission, advisorId, consent };
+      const row = { id: id(), reference, submission, advisorId, consent, status: "nueva_solicitud", createdAt: new Date().toISOString() };
       state.quoteRequests.push(row);
       return { id: row.id, reference };
     },

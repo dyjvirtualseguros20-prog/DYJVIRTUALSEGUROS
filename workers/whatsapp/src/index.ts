@@ -4,6 +4,9 @@
  * Rutas:
  *   POST /simular            → entrega un mensaje simulado a la FILA DEL CLIENTE (Durable Object)
  *                              y espera el resultado del lote (Authorization: Bearer <SIMULATION_KEY>)
+ *                              Opciones: "modelo": "prueba" (modelo de simulación, sin Workers AI),
+ *                              "asesor": "<id>" (el cliente llega desde el enlace de ese asesor),
+ *                              "simularFallo", "timestamp", "esperar".
  *   POST /simular/reiniciar  → cierra la conversación abierta de un número de prueba (misma clave)
  *   todo lo demás            → 404 (en esta fase NO existe /webhook: no se reciben ni envían mensajes reales)
  *
@@ -50,6 +53,7 @@ const worker = {
       timestamp?: unknown;
       esperar?: unknown;
       simularFallo?: unknown;
+      asesor?: unknown;
     };
     try {
       body = await req.json();
@@ -69,7 +73,9 @@ const worker = {
       const rawId = typeof body.messageId === "string" && body.messageId.trim() ? body.messageId.trim() : crypto.randomUUID();
       const messageId = `sim-${rawId.replace(/^sim-/, "")}`.slice(0, 180);
       const options: Record<string, string> = {};
-      if (body.modelo === "prueba") options.modelo = "prueba"; // sin Workers AI
+      if (body.modelo === "prueba") options.modelo = "prueba"; // modelo de simulación, sin Workers AI
+      // Atribución: el cliente llega desde el enlace de un asesor (solo se aplica si es de la base central).
+      if (typeof body.asesor === "string" && /^[a-z0-9-]{1,30}$/.test(body.asesor)) options.asesor = body.asesor;
       if (body.simularFallo === true) options.simular_fallo = "1"; // falla el primer intento (prueba de recuperación)
       const sentAt = typeof body.timestamp === "number" && Number.isFinite(body.timestamp) ? body.timestamp : null;
 
