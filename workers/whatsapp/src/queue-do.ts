@@ -8,10 +8,10 @@ import { DurableObject } from "cloudflare:workers";
 import { redactHealthData } from "@/server/assistant/grounding";
 import { consoleUsageSink, createWorkersAiRouter, singleModel } from "@/server/ai/router";
 import { AiError } from "@/server/ai/model";
-import { handleIncomingBatch } from "./conversation";
+import { handleIncomingBatch, type Incoming } from "./conversation";
 import type { Env } from "./env";
 import { OrderedQueue, type QueueMessage, type QueueRow, type QueueStorage } from "./queue";
-import { simulatedSender } from "./sender";
+import { createCloudSender, simulatedSender } from "./sender";
 import { createPostgresStore } from "./store";
 import { fakeModel } from "./simulationModel";
 
@@ -188,7 +188,20 @@ export class ConversationQueue extends DurableObject<Env> {
     try {
       return await withTimeout(
         handleIncomingBatch(
-          { store, models, sender: simulatedSender, defaultAdvisorId: this.env.DEFAULT_ADVISOR_ID?.trim() || null, siteUrl: this.env.SITE_URL },
+          {
+            store,
+            models,
+            // Solo los mensajes que llegaron por el webhook real se responden por WhatsApp real.
+            sender: batch.every((m) => !m.simulated && m.options.canal === "meta")
+              ? createCloudSender({
+                  accessToken: this.env.WHATSAPP_ACCESS_TOKEN ?? "",
+                  phoneNumberId: this.env.WHATSAPP_PHONE_NUMBER_ID ?? "",
+                  graphVersion: this.env.WHATSAPP_GRAPH_VERSION || "v23.0",
+                })
+              : simulatedSender,
+            defaultAdvisorId: this.env.DEFAULT_ADVISOR_ID?.trim() || null,
+            siteUrl: this.env.SITE_URL,
+          },
           batch.map((m) => ({
             from: m.from,
             name: m.name,
@@ -197,6 +210,8 @@ export class ConversationQueue extends DurableObject<Env> {
             simulated: m.simulated,
             healthRedacted: m.options.salud_oculta === "1",
             referralAdvisorId: m.options.asesor ?? null,
+            fromBusiness: m.options.eco === "1",
+            messageType: (m.options.tipo as Incoming["messageType"]) ?? "texto",
           })),
           { resume },
         ),

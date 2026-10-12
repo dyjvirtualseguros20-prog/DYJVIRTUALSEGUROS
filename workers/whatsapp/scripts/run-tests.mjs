@@ -8,7 +8,7 @@ import { dirname, join } from "node:path";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
-for (const name of ["escenarios", "fila", "herramientas"]) {
+for (const name of ["escenarios", "fila", "herramientas", "webhook"]) {
   const outfile = join(root, ".test-build", `${name}.mjs`);
   await build({
     entryPoints: [join(root, "test", `${name}.ts`)],

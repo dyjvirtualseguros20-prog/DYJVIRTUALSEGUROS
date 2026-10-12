@@ -1,5 +1,6 @@
 /**
- * Worker dyj-whatsapp — FASE DE SIMULACIÓN.
+ * Worker dyj-whatsapp — Súper Asesor por WhatsApp (simulación + webhook de Meta).
+ * WHATSAPP_MODE: "simulacion" (solo /simular) · "piloto" (webhook, solo números del piloto) · "produccion".
  * Independiente del Worker de la web (dyj-virtual-seguros): no tiene rutas ni dominio propio.
  * Comparte el código del Asesor IA con la web (import "@/…" → raíz del proyecto).
  */
@@ -22,9 +23,12 @@
   "observability": { "enabled": true },
   "vars": {
     "WHATSAPP_MODE": "simulacion",
+    // Versión de la Graph API de Meta para enviar mensajes.
+    "WHATSAPP_GRAPH_VERSION": "v23.0",
     // "" = las conversaciones llegan sin asesor (como en la web). Decisión pendiente del dueño.
     "DEFAULT_ADVISOR_ID": "",
     "SITE_URL": "https://dyjvirtualseguros.com",
   },
-  // Secreto (con `wrangler secret put`, nunca aquí): SIMULATION_KEY
+  // Secretos (con `wrangler secret put`, nunca aquí): SIMULATION_KEY, WHATSAPP_APP_SECRET,
+  // WHATSAPP_VERIFY_TOKEN, WHATSAPP_ACCESS_TOKEN, WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_PILOT_NUMBERS
 }

@@ -26,12 +26,15 @@ import { CONSENT_TEXT, QUOTE_DISCLAIMER } from "@/lib/legal";
 import type { ModelSource } from "@/server/ai/router";
 import { HISTORY_WINDOW, runAssistantTurn, type EscalationReason, type Intent } from "@/server/assistant/core";
 import { redactHealthData } from "@/server/assistant/grounding";
+import { AiError } from "@/server/ai/model";
 import { createToolRunner } from "@/server/tools/runner";
 import type { ChatStore, ConversationStatus } from "./store";
 import type { OutboundSender } from "./sender";
 import { ALTERNATIVE_REPLY, asksForAlternative, asksQuoteStatus, statusReply } from "./followup";
 import {
   actualizarTurno,
+  atendidaEnApp,
+  CANAL_WHATSAPP,
   consultarSolicitudes,
   escalarConversacion,
   IA_WHATSAPP,
@@ -56,7 +59,22 @@ export interface Incoming {
   healthRedacted?: boolean;
   /** Asesor del enlace por el que llegó el cliente (solo cuenta si es de la base central). */
   referralAdvisorId?: string | null;
+  /**
+   * Eco (coexistencia): mensaje que la EMPRESA envió desde la app WhatsApp Business a este cliente.
+   * Significa que una persona (Cristian) está atendiendo: se guarda y la IA deja de responder.
+   */
+  fromBusiness?: boolean;
+  /** Tipo de mensaje de WhatsApp (por defecto texto). Por ahora la IA solo lee texto. */
+  messageType?: "texto" | "audio" | "imagen" | "documento" | "interactivo" | "otro";
 }
+
+/** Respuesta a audios, imágenes, documentos…: la IA todavía no los lee. */
+export const NON_TEXT_REPLY =
+  "Por ahora solo puedo leer mensajes de texto 🙏 ¿Me lo escribes, por favor? Si es un documento o una foto, un asesor de D&J lo revisará.";
+
+/** Cuando el cupo diario de IA se agota: no se deja al cliente sin respuesta, pasa a una persona. */
+export const AI_UNAVAILABLE_REPLY =
+  "En este momento no puedo responderte automáticamente. Un asesor de D&J continuará esta conversación por este mismo chat.";
 
 export interface Outcome {
   duplicate: boolean;
@@ -153,25 +171,37 @@ export async function handleIncomingBatch(deps: Deps, msgs: Incoming[], options:
   const conversation = await store.openConversation(contact, advisorId, initialLead(from));
 
   // ── 1. Guardar cada mensaje individualmente (orden de la fila), ocultando datos de salud ──
-  const nuevos: Array<{ original: string; redacted: string; storedId: string | null; messageId: string }> = [];
+  const nuevos: Array<{ original: string; redacted: string; storedId: string | null; messageId: string; text: boolean }> = [];
   let healthRedacted = false;
+  let humanReplied = false;
   for (const msg of msgs) {
     const original = cleanText(msg.text).slice(0, 4000);
     if (!original) continue;
     const redacted = redactHealthData(original);
     const inserted = await store.insertMessage({
       conversationId: conversation.id,
-      direction: "entrante",
-      author: "cliente",
+      direction: msg.fromBusiness ? "saliente" : "entrante",
+      author: msg.fromBusiness ? "asesor" : "cliente",
+      messageType: msg.messageType ?? "texto",
       body: redacted.text,
       healthRedacted: redacted.removed || Boolean(msg.healthRedacted),
       externalId: msg.messageId,
-      deliveryStatus: "recibido",
+      deliveryStatus: msg.fromBusiness ? "enviado" : "recibido",
       isSimulated: msg.simulated,
     });
     // Ya existía: en un reintento es el mismo mensaje (se reutiliza); si no, es un duplicado.
     if (!inserted && !options.resume) continue;
-    nuevos.push({ original, redacted: redacted.text, storedId: inserted?.id ?? null, messageId: msg.messageId });
+    if (msg.fromBusiness) {
+      humanReplied = true;
+      continue;
+    }
+    nuevos.push({
+      original,
+      redacted: redacted.text,
+      storedId: inserted?.id ?? null,
+      messageId: msg.messageId,
+      text: (msg.messageType ?? "texto") === "texto",
+    });
     healthRedacted ||= redacted.removed || Boolean(msg.healthRedacted);
   }
 
@@ -188,6 +218,16 @@ export async function handleIncomingBatch(deps: Deps, msgs: Incoming[], options:
     quoteReference: null,
     messageIds: nuevos.map((n) => n.messageId),
   };
+  // Cristian respondió desde la app WhatsApp Business (coexistencia): lo atiende una persona.
+  if (humanReplied) {
+    if (conversation.status !== "asesor")
+      await tools.runOrThrow(atendidaEnApp, CANAL_WHATSAPP, { store }, {
+        conversationId: conversation.id,
+        expectedVersion: conversation.version,
+        patch: { status: "asesor" },
+      });
+    return { ...result, status: "asesor" };
+  }
   if (!nuevos.length) return { ...result, duplicate: true };
 
   // Un asesor tiene (o está por tomar) la conversación: la IA no responde.
@@ -204,6 +244,24 @@ export async function handleIncomingBatch(deps: Deps, msgs: Incoming[], options:
       const externalId = `${replyKey}${replyIndex++}`;
       if (await store.messageExists(externalId)) continue;
       const delivery = await sender.send(from, text);
+      // Envío REAL por WhatsApp: queda en la auditoría (sin el texto ni el número).
+      if (sender.real)
+        await store.tools.audit
+          .write({
+            actorType: "ia",
+            actorId: "asesor-virtual",
+            channel: "whatsapp",
+            action: "mensaje.enviar",
+            level: "ejecutar",
+            resourceType: "chat_conversation",
+            resourceId: conversation.id,
+            outcome: delivery.status === "enviado" ? "exito" : "error",
+            reason: delivery.status === "enviado" ? null : `meta_${delivery.errorCode ?? 0}`,
+            errorMessage: null,
+            idempotencyKey: externalId,
+            metadata: { intent },
+          })
+          .catch((e: unknown) => console.error("[auditoria] envío", e instanceof Error ? e.message.slice(0, 120) : ""));
       await store.insertMessage({
         conversationId: conversation.id,
         direction: "saliente",
@@ -217,6 +275,12 @@ export async function handleIncomingBatch(deps: Deps, msgs: Incoming[], options:
       result.replies.push(text);
     }
   };
+
+  // Audio, imagen, documento…: la IA todavía no los lee (no se adivina su contenido).
+  if (nuevos.every((n) => !n.text)) {
+    await say([NON_TEXT_REPLY], conversation.intent);
+    return result;
+  }
 
   // ── 2. Confirmación de una solicitud completa ──
   const evidence = nuevos.find((n) => isAcceptance(n.original));
@@ -289,14 +353,25 @@ export async function handleIncomingBatch(deps: Deps, msgs: Incoming[], options:
 
   // ── 5. Turno del núcleo común (la ráfaga se interpreta como un solo mensaje) ──
   const history = collapseBurst(await store.recentHistory(conversation.id, HISTORY_WINDOW + nuevos.length - 1), nuevos.length);
-  const turn = await runAssistantTurn({
+  let turn: Awaited<ReturnType<typeof runAssistantTurn>>;
+  try {
+    turn = await runAssistantTurn({
     history,
     lead: conversation.leadState,
     advisor: null,
     models: deps.models,
     channel: "whatsapp",
-    healthDataRedacted: healthRedacted,
-  });
+      healthDataRedacted: healthRedacted,
+    });
+  } catch (error) {
+    // Cupo diario de Workers AI agotado: no vuelve hasta el día siguiente. Pasa a una persona y se
+    // avisa al cliente. Otros fallos de la IA se relanzan para que la fila reintente.
+    if (!(error instanceof AiError) || !/3036|neuron|daily|diari/i.test(error.message)) throw error;
+    await escalate(tools, store, conversation.id, conversation.version);
+    Object.assign(result, { status: "esperando_asesor", escalation: "asesor_humano" });
+    await say([AI_UNAVAILABLE_REPLY], conversation.intent);
+    return result;
+  }
 
   const status: ConversationStatus = turn.kind === "escalar" ? "esperando_asesor" : "bot";
   // Con la versión leída: si un asesor tomó la conversación mientras tanto, NO se escribe encima.

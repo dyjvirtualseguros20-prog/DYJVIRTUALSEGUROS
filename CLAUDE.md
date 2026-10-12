@@ -41,6 +41,8 @@ Acciones y auditoría (paso 2.5): todo cambio de estado de la IA (WhatsApp) y de
 
 MVP del Súper Asesor (simulación): «¿qué pasó con mi cotización?» responde solo con datos de la base (`workers/whatsapp/src/followup.ts`); «muy caro / otra opción» queda como propuesta y pasa al asesor; WhatsApp solo asigna clientes a asesores con `central_base` (Jeisson no). `/simular` con `"modelo": "prueba"` usa el modelo de simulación (sin Workers AI) y `"asesor": "<id>"` simula la llegada desde el enlace de un asesor.
 
+WhatsApp real (preparado): `GET/POST /webhook` en `dyj-whatsapp` con firma `X-Hub-Signature-256`, deduplicación por wamid en la fila, envío por Cloud API (`src/sender.ts`). Modos (`WHATSAPP_MODE`): `simulacion` · `piloto` (la IA solo atiende `WHATSAPP_PILOT_NUMBERS`; el resto se ignora y lo atiende la persona en su app) · `produccion`. Coexistencia: si Cristian responde desde la app WhatsApp Business (eco `smb_message_echoes`), la conversación pasa a «asesor» y la IA se calla. El 311 (Cristian) NO se migra: solo se conecta por coexistencia (exige que D&J sea Tech Provider de Meta). Secretos solo en Cloudflare: `WHATSAPP_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_PILOT_NUMBERS`.
+
 ## Cómo trabajar
 
 - Local: `npm run dev` (puerto 3100 en la app). Workers AI real en local vía `initOpenNextCloudflareForDev` + `npx wrangler login` (consume el mismo cupo).

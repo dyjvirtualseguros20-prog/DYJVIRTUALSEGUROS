@@ -39,6 +39,9 @@ export const WHATSAPP_CONSENT_TEXT_VERSION = "wa-tecnico-1-pendiente-revision-ju
 /** La IA del canal WhatsApp como actor de la auditoría. */
 export const IA_WHATSAPP: Actor = { type: "ia", id: "asesor-virtual", channel: "whatsapp", active: true };
 
+/** El propio canal (p. ej. un eco de la app WhatsApp Business) como actor de la auditoría. */
+export const CANAL_WHATSAPP: Actor = { type: "canal", id: "whatsapp", channel: "whatsapp", active: true };
+
 export interface WaToolDeps {
   store: ChatStore;
 }
@@ -91,6 +94,22 @@ export const escalarConversacion: ToolDefinition<TurnInput, { version: number },
   resource: (i) => ({ type: "chat_conversation", id: i.conversationId }),
   execute: applyTurn,
   summarize: turnSummary,
+};
+
+/**
+ * Coexistencia: alguien respondió desde la app WhatsApp Business. La conversación queda en manos de
+ * una persona (estado «asesor») y la IA deja de responder hasta que la devuelvan desde /admin.
+ */
+export const atendidaEnApp: ToolDefinition<TurnInput, { version: number }, WaToolDeps> = {
+  name: "conversacion.atendida_en_app",
+  level: "escalar",
+  actors: ["canal"],
+  input: turnInput.refine((i) => i.patch.status === "asesor" && Object.keys(i.patch).length === 1, {
+    message: "Solo cambia el estado a «asesor»",
+  }),
+  resource: (i) => ({ type: "chat_conversation", id: i.conversationId }),
+  execute: applyTurn,
+  summarize: () => ({ status: "asesor" }),
 };
 
 /* ─────────────────────────────── Registrar solicitud ─────────────────────────────── */
