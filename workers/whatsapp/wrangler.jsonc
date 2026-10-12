@@ -22,7 +22,7 @@
   "migrations": [{ "tag": "v1-fila-por-cliente", "new_sqlite_classes": ["ConversationQueue"] }],
   "observability": { "enabled": true },
   "vars": {
-    "WHATSAPP_MODE": "simulacion",
+    "WHATSAPP_MODE": "piloto",
     // Versión de la Graph API de Meta para enviar mensajes.
     "WHATSAPP_GRAPH_VERSION": "v23.0",
     // "" = las conversaciones llegan sin asesor (como en la web). Decisión pendiente del dueño.
