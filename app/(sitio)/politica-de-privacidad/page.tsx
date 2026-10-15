@@ -350,11 +350,12 @@ export default function PrivacyPage() {
                   <td className="px-4 py-3 max-sm:block max-sm:py-1.5">
                     <strong className="text-ink">asesor</strong>
                     <br />
-                    Cookie propia, funcional
+                    Cookie propia, necesaria para el servicio que solicitas
                   </td>
                   <td className="px-4 py-3 max-sm:block max-sm:py-1.5">
                     <span className="block text-xs font-bold text-ink sm:hidden">Finalidad</span>
-                    Solo se crea si entras por el enlace de un asesor. Recuerda a qué asesor se asigna tu solicitud.
+                    Solo se crea si entras por el enlace de un asesor. Recuerda a qué asesor se asigna tu solicitud. No
+                    depende de aceptar las cookies opcionales del aviso de cookies.
                   </td>
                   <td className="px-4 py-3 max-sm:block max-sm:py-1.5">
                     <span className="block text-xs font-bold text-ink sm:hidden">Duración</span>30 días
@@ -380,12 +381,12 @@ export default function PrivacyPage() {
                   <td className="px-4 py-3 max-sm:block max-sm:py-1.5">
                     <strong className="text-ink">dyj-chat-tip-visto</strong>
                     <br />
-                    Almacenamiento local del navegador (localStorage), funcional
+                    Almacenamiento local del navegador (localStorage), necesario para el servicio que solicitas
                   </td>
                   <td className="px-4 py-3 max-sm:block max-sm:py-1.5">
                     <span className="block text-xs font-bold text-ink sm:hidden">Finalidad</span>
                     Recuerda que ya viste el mensaje de bienvenida del asesor virtual, para no repetirlo. No guarda
-                    datos personales.
+                    datos personales y no depende de aceptar las cookies opcionales del aviso de cookies.
                   </td>
                   <td className="px-4 py-3 max-sm:block max-sm:py-1.5">
                     <span className="block text-xs font-bold text-ink sm:hidden">Duración</span>Hasta que borres los
