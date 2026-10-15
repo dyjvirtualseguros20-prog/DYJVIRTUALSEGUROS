@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { AssistantLauncher } from "@/components/chat/AssistantLauncher";
 import { CookieYes } from "@/components/legal/CookieYes";
+import { GoogleAnalytics } from "@/components/legal/GoogleAnalytics";
 import { Footer } from "./Footer";
 import { Header } from "./Header";
 import { WhatsAppFloat } from "./WhatsAppFloat";
@@ -21,6 +22,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
       <WhatsAppFloat />
       <AssistantLauncher />
       <CookieYes />
+      <GoogleAnalytics />
     </>
   );
 }

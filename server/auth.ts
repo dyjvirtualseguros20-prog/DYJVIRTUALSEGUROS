@@ -10,14 +10,14 @@ import {
   safeEqual,
   verifyDevSession,
 } from "./devSession";
+import { staffSessionFrom, type StaffRow, type StaffSession } from "@/lib/staff";
 import { getBackend } from "./env";
 import { createSessionClient } from "./supabase";
 
-export interface AdminSession {
-  email: string;
-}
+/** Sesión del panel: quién es y con qué rol (admin_principal o asesor). */
+export type AdminSession = StaffSession;
 
-/** Devuelve el asesor de la sesión actual o null. Verifica permisos en el servidor. */
+/** Devuelve la sesión del panel o null. Verifica la cuenta y el rol en el servidor. */
 export async function getAdminSession(): Promise<AdminSession | null> {
   const backend = getBackend();
 
@@ -27,20 +27,26 @@ export async function getAdminSession(): Promise<AdminSession | null> {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) return null;
-    // Solo los usuarios registrados en public.admin_users son asesores.
-    const { data: admin } = await supabase.from("admin_users").select("user_id").eq("user_id", user.id).maybeSingle();
-    return admin ? { email: user.email ?? "" } : null;
+    // Solo las cuentas ACTIVAS de public.staff_users entran al panel (RLS: cada uno ve la suya).
+    const { data: row } = await supabase
+      .from("staff_users")
+      .select("role, advisor_id, active")
+      .eq("user_id", user.id)
+      .maybeSingle<StaffRow>();
+    return staffSessionFrom(user, row);
   }
 
   if (backend === "local") {
+    // Acceso de desarrollo (sin Supabase): un único administrador.
     const store = await cookies();
-    return verifyDevSession(store.get(DEV_SESSION_COOKIE)?.value);
+    const dev = verifyDevSession(store.get(DEV_SESSION_COOKIE)?.value);
+    return dev ? { userId: "local", email: dev.email, role: "admin_principal", advisorId: null } : null;
   }
 
   return null;
 }
 
-/** Exige sesión de asesor; si no la hay, redirige al inicio de sesión. */
+/** Exige sesión del panel; si no la hay, redirige al inicio de sesión. */
 export async function requireAdmin(): Promise<AdminSession> {
   const session = await getAdminSession();
   if (!session) redirect("/admin/login");
@@ -59,7 +65,7 @@ export async function signIn(email: string, password: string): Promise<SignInRes
     if (error) return invalid;
     if (!(await getAdminSession())) {
       await supabase.auth.signOut();
-      return { ok: false, error: "Tu usuario no tiene permisos de asesor." };
+      return { ok: false, error: "Tu usuario no tiene acceso al panel o está desactivado." };
     }
     return { ok: true };
   }

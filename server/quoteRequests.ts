@@ -9,11 +9,10 @@ import "server-only";
  * Las funciones del panel exigen sesión de asesor (requireAdmin) y, con Supabase,
  * además leen con la sesión del usuario para que RLS proteja los datos.
  */
-import { randomInt } from "node:crypto";
 import { normalizeAdvisorId } from "@/lib/advisorLink";
 import type { ConsentRecord } from "@/lib/legal";
+import { buildQuoteSubmission, newRequestReference } from "@/lib/quoteSubmission";
 import type { AnyQuoteForm, AssistantQuoteForm } from "@/lib/validation/quoteSchemas";
-import { toQuoteRequest } from "@/services/clients";
 import type {
   InsuranceType,
   QuoteRequestFilters,
@@ -37,14 +36,6 @@ function getStore(): QuoteRequestStore {
   throw new StorageNotConfiguredError("Supabase no está configurado.");
 }
 
-/** Referencia corta y legible: SOL-7K2M9Q (sin 0/O/1/I para evitar confusiones). */
-function newReference(): string {
-  const alphabet = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
-  let code = "";
-  for (let i = 0; i < 6; i++) code += alphabet[randomInt(alphabet.length)];
-  return `SOL-${code}`;
-}
-
 /**
  * Registra una solicitud validada con el estado "Nueva solicitud".
  * `source`: "formulario" (cotizador) o "asistente_ia" (asesor virtual).
@@ -56,27 +47,14 @@ export async function createQuoteRequest(
   advisorId: string | null = null,
   { source = "formulario", notes, consent }: { source?: RequestSource; notes?: string; consent?: ConsentRecord } = {},
 ): Promise<QuoteRequestReceipt> {
-  const { contact, details } = toQuoteRequest(type, form);
-  const formData: Record<string, unknown> = notes ? { ...details, observaciones: notes } : details;
-  const identification =
-    "documentNumber" in details ? String(details.documentNumber) : "nit" in details ? String(details.nit) : null;
-  const city = "city" in details ? String(details.city) : null;
+  const submission = buildQuoteSubmission(type, form, notes);
 
   const store = getStore();
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       const created = await store.create({
-        reference: newReference(),
-        insuranceType: type,
-        fullName: contact.fullName,
-        identification,
-        phone: contact.phone,
-        // El formulario pide un único número "Teléfono / WhatsApp" (10 dígitos, Colombia).
-        whatsapp: `57${contact.phone}`,
-        // Solo el asesor virtual puede enviar sin correo (la base de datos lo exige al formulario).
-        email: contact.email || null,
-        city,
-        formData,
+        reference: newRequestReference(),
+        ...submission,
         advisorId: normalizeAdvisorId(advisorId),
         source,
         consent: consent ?? null,

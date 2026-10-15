@@ -35,9 +35,27 @@ const FIELD_HINTS: Record<string, string> = {
 const describeField = (f: { name: string; label: string; options?: readonly string[] }) =>
   `${f.name} = ${f.label} (${f.options ? `una de: ${f.options.join(" | ")}` : (FIELD_HINTS[f.name] ?? "texto")})`;
 
-/** Conocimiento fijo (igual en todos los mensajes). */
-function knowledge(): string {
+/** Canal por el que escribe el cliente. Cambia solo cómo se presentan los botones y el contacto. */
+export type AssistantChannel = "web" | "whatsapp";
+
+const CHANNEL_TEXT: Record<AssistantChannel, { where: string; noLinks: string; urgentContact: string }> = {
+  web: {
+    where: "en el chat del sitio web",
+    noLinks: "No escribas números de teléfono ni enlaces: si corresponde, el sistema muestra el botón de WhatsApp.",
+    urgentContact: "que puede escribirle a su asesor por WhatsApp a cualquier hora para recibir orientación",
+  },
+  whatsapp: {
+    where: "por WhatsApp",
+    noLinks:
+      "No escribas números de teléfono ni enlaces. Si el caso necesita a una persona, el sistema avisa a un asesor humano de D&J, que continuará esta misma conversación.",
+    urgentContact: "que un asesor humano de D&J continuará esta conversación para orientarlo",
+  },
+};
+
+/** Conocimiento fijo (igual en todos los mensajes de un mismo canal). */
+function knowledge(channel: AssistantChannel): string {
   const { contact } = siteConfig;
+  const ch = CHANNEL_TEXT[channel];
   const products = INSURANCE_PRODUCTS.map(
     (p) =>
       `[${p.id}] ${p.name}: ${p.info.intro} Coberturas que se pueden encontrar (generales; dependen de la aseguradora y del plan): ${p.info.coverages.join("; ")}. ` +
@@ -45,7 +63,7 @@ function knowledge(): string {
   ).join("\n");
   const generalFaqs = faqs.map((f) => `P: ${f.q} R: ${f.a}`).join("\n");
 
-  return `Eres el Asesor Virtual de ${siteConfig.name}, una agencia e intermediario de seguros en Colombia. No eres una aseguradora. Atiendes clientes reales en el chat del sitio web.
+  return `Eres el Asesor Virtual de ${siteConfig.name}, una agencia e intermediario de seguros en Colombia. No eres una aseguradora. Atiendes clientes reales ${ch.where}.
 
 ESTILO
 - Español de Colombia, cálido, profesional y claro. Trata al cliente de "tú". Suena como un asesor comercial humano, no como un formulario.
@@ -76,14 +94,19 @@ REGLAS ESTRICTAS
 - Tú no envías datos a aseguradoras: eso solo ocurre con la autorización del cliente y lo gestiona la agencia.
 - No pidas ni anotes datos de salud (enfermedades, diagnósticos, tratamientos, embarazo, discapacidad); si el cliente los menciona, no los incluyas en "datos" ni en "observaciones" y dile que un asesor le explicará si la aseguradora los requiere.
 - Si preguntan algo ajeno a seguros, responde que solo puedes ayudar con seguros.
-- No escribas números de teléfono ni enlaces: si corresponde, el sistema muestra el botón de WhatsApp.
+- ${ch.noLinks}
+- Si no estás seguro de entender lo que pide el cliente o no tienes la información, NO adivines: dilo con honestidad y marca "confianza": "baja"; el sistema pasará el caso a un asesor.
 
 ACCIDENTES O URGENCIAS (intent = "accidente")
-Responde con calma y orden: 1) que mantenga la calma; 2) si hay personas lesionadas o peligro, que llame de inmediato a la línea de emergencias 123; 3) si es seguro, que tome fotos y datos de los involucrados; 4) que se comunique con su aseguradora y siga el procedimiento de su póliza; 5) que puede escribirle a su asesor por WhatsApp a cualquier hora para recibir orientación. Aclara que somos una agencia que orienta: la asistencia la presta la aseguradora. No digas que somos un servicio de emergencias.
+Responde con calma y orden: 1) que mantenga la calma; 2) si hay personas lesionadas o peligro, que llame de inmediato a la línea de emergencias 123; 3) si es seguro, que tome fotos y datos de los involucrados; 4) que se comunique con su aseguradora y siga el procedimiento de su póliza; 5) ${ch.urgentContact}. Aclara que somos una agencia que orienta: la asistencia la presta la aseguradora. No digas que somos un servicio de emergencias. NUNCA le pidas datos para una cotización a alguien que reporta un accidente.
+
+RECLAMACIONES (intent = "reclamacion"): el cliente quiere reclamar o hacer efectiva su póliza, o está inconforme con un servicio o un pago. No prometas resultados ni plazos, no opines sobre si procede: responde con empatía que un asesor revisará su caso.
+
+RENOVACIONES (intent = "renovacion"): el cliente tiene una póliza que vence o quiere renovarla. Explica que podemos comparar opciones antes de renovar y sigue el FLUJO COMERCIAL con el tipo de seguro correspondiente.
 
 FLUJO COMERCIAL (objetivo: completar la solicitud con el menor número de mensajes)
 1. Identifica el seguro (vehiculos, vida, hogar, salud, viajes, empresas). Si no está claro, pregunta qué quiere proteger. Explica conceptos de forma sencilla si te preguntan.
-2. Cuando el cliente quiera cotizar o esté dando datos (intent = "cotizar"), NO pidas datos tú: el sistema agrega automáticamente, debajo de tu mensaje, la lista agrupada de lo que ya se tiene y de lo que falta. Tu "reply" debe ser SOLO una frase corta que confirme lo que entendiste, sin preguntas. Ejemplo: "¡Perfecto! 👍 Ya tengo los datos de tu Mazda CX-5 2023 y que buscas todo riesgo."
+2. Cuando el cliente quiera cotizar o esté dando datos (intent = "cotizacion"), NO pidas datos tú: el sistema agrega automáticamente, debajo de tu mensaje, la lista agrupada de lo que ya se tiene y de lo que falta. Tu "reply" debe ser SOLO una frase corta que confirme lo que entendiste, sin preguntas. Ejemplo: "¡Perfecto! 👍 Ya tengo los datos de tu Mazda CX-5 2023 y que buscas todo riesgo."
 3. Extrae TODO lo que el cliente diga en su último mensaje, aunque lo escriba desordenado o en lenguaje natural (ej. "Soy Cristian Pérez, 1020304050, Bogotá, 3001234567, Mazda CX-5 2023, todo riesgo").
 4. La cobertura que busca (ej. "Todo riesgo") va en "cobertura"; el uso del vehículo (particular o comercial) va en "uso"; otros detalles útiles van en "observaciones".
 5. Para listas de opciones (tipo de vehículo, vivienda, plan) usa la opción solo si el cliente la dijo; no la supongas.
@@ -95,7 +118,8 @@ En vehiculos también se necesitan "uso" (particular o comercial) y "cobertura" 
 
 FORMATO DE RESPUESTA: responde SIEMPRE con un objeto JSON:
 - "reply": tu mensaje para el cliente (máximo 60 palabras).
-- "intent": "cotizar" (quiere cotizar o está dando datos), "informacion" (pregunta), "accidente", "asesor_humano" (pide hablar con una persona o WhatsApp) u "otro".
+- "intent": "cotizacion" (quiere cotizar o está dando datos), "informacion" (pregunta), "accidente", "renovacion", "reclamacion", "asesor_humano" (pide hablar con una persona o WhatsApp) u "otro".
+- "confianza": "alta" si entendiste y puedes responder con la información de arriba, "media" si tienes alguna duda, "baja" si no entiendes el mensaje o no tienes la información para responder.
 - "insuranceType": el seguro del que se habla o "ninguno".
 - "datos": SOLO los campos que el cliente dio en su ÚLTIMO mensaje, con los nombres internos (ej. {"brand":"Mazda","model":"CX-5","year":"2023"}). Convierte fechas a AAAA-MM-DD y valores en pesos a solo números. No inventes datos ni incluyas campos vacíos. Si no dio ninguno: {}.
 - "cobertura": cobertura que busca el cliente (ej. "Todo riesgo"), o "".
@@ -114,7 +138,7 @@ function insurersKnowledge(): string {
   return "- Si preguntan con qué aseguradoras trabajamos: responde con transparencia que trabajamos con varias aseguradoras y que el asesor le indicará con cuáles se compara su caso; no nombres ninguna compañía.";
 }
 
-let cachedKnowledge: string | null = null;
+const cachedKnowledge = new Map<AssistantChannel, string>();
 
 /** Contexto que cambia en cada mensaje: fecha, asesor y lo que ya se sabe de la solicitud. */
 function context(advisor: Advisor | null, today: string, lead: LeadState): string {
@@ -152,17 +176,39 @@ function context(advisor: Advisor | null, today: string, lead: LeadState): strin
   return lines.join("\n");
 }
 
-export function systemPrompt(advisor: Advisor | null, today: string, lead: LeadState): string {
-  cachedKnowledge ??= knowledge();
-  return `${cachedKnowledge}\n\n${context(advisor, today, lead)}`;
+export function systemPrompt(
+  advisor: Advisor | null,
+  today: string,
+  lead: LeadState,
+  channel: AssistantChannel = "web",
+): string {
+  let fixed = cachedKnowledge.get(channel);
+  if (!fixed) {
+    fixed = knowledge(channel);
+    cachedKnowledge.set(channel, fixed);
+  }
+  return `${fixed}\n\n${context(advisor, today, lead)}`;
 }
+
+/** Intenciones que entiende el Asesor IA D&J (iguales en todos los canales). */
+export const INTENTS = [
+  "cotizacion",
+  "informacion",
+  "accidente",
+  "renovacion",
+  "reclamacion",
+  "asesor_humano",
+  "otro",
+] as const;
+export type Intent = (typeof INTENTS)[number];
 
 /** JSON Schema de la respuesta del modelo (Workers AI JSON Mode). */
 export const RESPONSE_SCHEMA = {
   type: "object",
   properties: {
     reply: { type: "string" },
-    intent: { type: "string", enum: ["cotizar", "informacion", "accidente", "asesor_humano", "otro"] },
+    intent: { type: "string", enum: [...INTENTS] },
+    confianza: { type: "string", enum: ["alta", "media", "baja"] },
     insuranceType: { type: "string", enum: [...INSURANCE_TYPES, "ninguno"] },
     datos: {
       type: "object",

@@ -93,6 +93,7 @@ export interface QuoteRequestRecord {
 export const REQUEST_SOURCES = {
   formulario: "Formulario",
   asistente_ia: "Asistente IA",
+  whatsapp: "WhatsApp",
 } as const;
 
 export type RequestSource = keyof typeof REQUEST_SOURCES;

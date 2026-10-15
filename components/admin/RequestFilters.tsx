@@ -14,6 +14,7 @@ export function RequestFilters({
   hasta,
   asesor,
   advisors,
+  showAdvisor = true,
 }: {
   tipo: string;
   estado: string;
@@ -21,6 +22,8 @@ export function RequestFilters({
   hasta: string;
   asesor: string;
   advisors: Advisor[];
+  /** Solo el administrador filtra por asesor. */
+  showAdvisor?: boolean;
 }) {
   return (
     <form
@@ -50,19 +53,21 @@ export function RequestFilters({
           ))}
         </select>
       </label>
-      <label className="space-y-1">
-        <span className="text-xs font-semibold text-slate-500">Asesor</span>
-        <select name="asesor" defaultValue={asesor} className={control}>
-          <option value="">Todos</option>
-          {advisors.map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.name}
-              {a.active ? "" : " (inactivo)"}
-            </option>
-          ))}
-          <option value={NO_ADVISOR}>Sin asesor</option>
-        </select>
-      </label>
+      {showAdvisor && (
+        <label className="space-y-1">
+          <span className="text-xs font-semibold text-slate-500">Asesor</span>
+          <select name="asesor" defaultValue={asesor} className={control}>
+            <option value="">Todos</option>
+            {advisors.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+                {a.active ? "" : " (inactivo)"}
+              </option>
+            ))}
+            <option value={NO_ADVISOR}>Sin asesor</option>
+          </select>
+        </label>
+      )}
       <label className="space-y-1">
         <span className="text-xs font-semibold text-slate-500">Desde</span>
         <input type="date" name="desde" defaultValue={desde} className={control} />

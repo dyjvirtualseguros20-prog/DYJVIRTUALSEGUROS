@@ -21,3 +21,6 @@ next-env.d.ts
 # Excepciones: archivos SIN secretos que sí deben estar en GitHub
 !.env.example
 !.env.production
+
+# Pruebas del Worker de WhatsApp (archivos generados)
+.test-build

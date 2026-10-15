@@ -127,7 +127,20 @@ export const BUSINESS_INSURANCE = [
   "Otro / no estoy seguro",
 ] as const;
 
-const currentYear = new Date().getFullYear();
+/**
+ * Año de modelo: de 1970 al año siguiente al actual. El máximo se calcula AL VALIDAR: en Cloudflare
+ * Workers la hora vale 0 (1970) mientras se carga el módulo, así que no puede fijarse al importar.
+ */
+const modelYear = z
+  .string()
+  .trim()
+  .min(1, required("el año"))
+  .transform(Number)
+  .superRefine((v, ctx) => {
+    const max = new Date().getFullYear() + 1;
+    if (!Number.isInteger(v) || v < 1970 || v > max)
+      ctx.addIssue({ code: "custom", message: `Ingresa un año entre 1970 y ${max}.` });
+  });
 
 /* ─────────────────────────────── Esquemas por seguro ─────────────────────────────── */
 
@@ -142,7 +155,7 @@ export const vehiculosSchema = z.object({
     .refine((v) => /^[A-Z]{3}\d{2}[A-Z0-9]$/.test(v), "Formato de placa no válido (ej.: ABC123 o ABC12D)."),
   brand: text("la marca", 40),
   model: text("el modelo o línea", 60),
-  year: integer("el año", 1970, currentYear + 1, `Ingresa un año entre 1970 y ${currentYear + 1}.`),
+  year: modelYear,
   vehicleType: z.enum(VEHICLE_TYPES, "Selecciona el tipo de vehículo."),
   city,
 });

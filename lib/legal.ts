@@ -45,7 +45,7 @@ export interface ConsentRecord {
   terms_version: string;
   /** Fecha y hora (servidor, UTC) en que el cliente envió la solicitud con las autorizaciones. */
   accepted_at: string;
-  source: "formulario" | "asistente_ia";
+  source: "formulario" | "asistente_ia" | "whatsapp";
   /** A. Leyó la política y los términos. */
   privacy_policy_read: boolean;
   /** B. Tratamiento para gestionar la cotización y contactarlo. */

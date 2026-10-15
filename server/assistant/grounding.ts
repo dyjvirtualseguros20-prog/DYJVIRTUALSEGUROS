@@ -479,6 +479,46 @@ const HEALTH =
   /(diabet|cancer|\bvih\b|\bsida\b|enfermedad|diagnostic|tratamiento medico|medicament|embaraz|discapacidad|hipertension|cirugia|psiquiatr|depresion|epilep|hospitaliz|condicion de salud|preexisten|transplant|trasplant|dialisis|quimioterap)/;
 export const containsHealthData = (text: string) => HEALTH.test(fold(text));
 
+/** Texto que reemplaza la parte de un mensaje con datos de salud antes de guardarlo. */
+export const HEALTH_PLACEHOLDER = "[información de salud omitida]";
+
+/**
+ * Oculta SOLO las partes del mensaje que mencionan datos de salud y conserva el resto útil.
+ * "Soy Ana, 1020304050, tengo diabetes, vivo en Cali" → "Soy Ana, 1020304050, [información de salud omitida], vivo en Cali".
+ */
+export function redactHealthData(text: string): { text: string; removed: boolean } {
+  if (!containsHealthData(text)) return { text, removed: false };
+  // Se divide en cláusulas conservando los separadores, y se reemplaza cada cláusula sensible.
+  const parts = text.split(/([,;.!?\n]+|\s+y\s+|\s+pero\s+)/i);
+  let removed = false;
+  const out = parts.map((part, i) => {
+    if (i % 2 === 1) return part; // separador
+    if (!containsHealthData(part)) return part;
+    removed = true;
+    return part.trim() ? ` ${HEALTH_PLACEHOLDER}` : part;
+  });
+  // Placeholders seguidos se unen en uno solo.
+  const joined = out
+    .join("")
+    .replace(new RegExp(`(\\s*\\[información de salud omitida\\][,;. y]*){2,}`, "g"), ` ${HEALTH_PLACEHOLDER} `)
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  return { text: joined, removed };
+}
+
+/** El cliente pide expresamente hablar con una persona (se detiene la automatización). */
+const HUMAN_REQUEST =
+  /(hablar|comunicarme|chatear|conversar)\s+(con\s+)?(una\s+persona|un\s+humano|alguien|un\s+asesor|una\s+asesora|el\s+asesor|la\s+asesora|cristian|jeisson)|(asesor|persona)\s+(humano|humana|real)|quiero\s+(un|una)\s+(asesor|asesora|persona)|no\s+quiero\s+(hablar\s+con\s+)?(un\s+)?(bot|robot|maquina)|que\s+me\s+(llame|llamen|contacte|contacten)\s+(un|una|alguien)|pasame\s+(con|a)\s+(un|una|alguien)/;
+export const asksForHuman = (text: string) => HUMAN_REQUEST.test(fold(text));
+
+/**
+ * Accidente que está ocurriendo o acaba de ocurrir (no una pregunta general como
+ * "¿qué pasa si choco?"): la seguridad va primero y el caso pasa a una persona.
+ */
+const ACCIDENT_NOW =
+  /(tuve|tengo|acabo de tener|acabamos de tener)\s+un\s+(accidente|choque|siniestro)|me\s+(acaban\s+de\s+)?(chocaron|choco|estrellaron|atropellaron|robaron el carro|robaron la moto|robaron el vehiculo)|(acabo de|acabamos de)\s+(chocar|estrellarme|atropellar)|\bchoque\s+(hace|ahorita|ahora)|\bchoque\b.*\b(heridos?|lesionad)|estoy\s+(en\s+un\s+accidente|accidentad)|hay\s+(heridos|lesionados)|emergencia/;
+export const reportsAccidentNow = (text: string) => ACCIDENT_NOW.test(fold(text));
+
 /**
  * Afirmaciones que el asistente nunca puede hacer: aprobación o emisión de pólizas, garantías,
  * "la mejor aseguradora" o precios que el cliente no escribió.

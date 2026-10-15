@@ -1,0 +1,22 @@
+{
+  "descripcion": "Tamaño del prompt del sistema por mensaje (Fase 2, paso 2.1). Tokens estimados = caracteres / 3,5.",
+  "medido_en": "2026-10-09",
+  "medicion": {
+    "web_sin_datos": {
+      "caracteres": 17990,
+      "tokens_estimados": 5140
+    },
+    "web_con_datos": {
+      "caracteres": 18321,
+      "tokens_estimados": 5235
+    },
+    "whatsapp_sin_datos": {
+      "caracteres": 18025,
+      "tokens_estimados": 5150
+    },
+    "whatsapp_con_datos": {
+      "caracteres": 18356,
+      "tokens_estimados": 5245
+    }
+  }
+}
