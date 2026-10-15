@@ -295,6 +295,10 @@ export default function PrivacyPage() {
               <strong>Vercel Inc.:</strong> copia de respaldo del sitio. Estados Unidos.
             </li>
             <li>
+              <strong>CookieYes:</strong> plataforma de gestión del consentimiento de cookies (banner de cookies).
+              Guarda un registro técnico de tu decisión sobre las cookies (punto 10).
+            </li>
+            <li>
               <strong>Meta (WhatsApp):</strong> cuando nos escribes o te escribimos por ese medio.
             </li>
           </ul>
@@ -307,8 +311,15 @@ export default function PrivacyPage() {
 
           <h2 id="cookies">10. Cookies y almacenamiento en tu navegador</h2>
           <p>
-            Esta web usa solo las cookies y el almacenamiento propios que se indican a continuación. Ninguno se crea por
-            el simple hecho de visitar la página:
+            Usamos <strong>CookieYes</strong> como plataforma de gestión del consentimiento. Al entrar a la web verás un
+            aviso donde puedes <strong>aceptar</strong>, <strong>rechazar</strong> o <strong>personalizar</strong> las
+            cookies opcionales. Las cookies opcionales permanecen desactivadas mientras no las aceptes. Después puedes
+            modificar o retirar tu consentimiento en cualquier momento con el botón «Preferencias de consentimiento»,
+            que aparece en la parte inferior izquierda de la pantalla.
+          </p>
+          <p>
+            Las cookies necesarias funcionan siempre, sin depender de que aceptes las opcionales. Estas son las cookies
+            y el almacenamiento que usa actualmente la web:
           </p>
           <div className="rounded-xl ring-1 ring-slate-200 sm:overflow-x-auto">
             <table className="w-full text-left text-sm max-sm:block sm:min-w-[520px]">
@@ -320,6 +331,21 @@ export default function PrivacyPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 align-top max-sm:block">
+                <tr className="max-sm:block max-sm:py-2">
+                  <td className="px-4 py-3 max-sm:block max-sm:py-1.5">
+                    <strong className="text-ink">cookieyes-consent</strong>
+                    <br />
+                    Cookie necesaria. Proveedor: CookieYes
+                  </td>
+                  <td className="px-4 py-3 max-sm:block max-sm:py-1.5">
+                    <span className="block text-xs font-bold text-ink sm:hidden">Finalidad</span>
+                    Almacena tus preferencias de consentimiento de cookies (qué aceptaste o rechazaste), para
+                    respetarlas y no volver a preguntarte en cada visita.
+                  </td>
+                  <td className="px-4 py-3 max-sm:block max-sm:py-1.5">
+                    <span className="block text-xs font-bold text-ink sm:hidden">Duración</span>1 año (365 días)
+                  </td>
+                </tr>
                 <tr className="max-sm:block max-sm:py-2">
                   <td className="px-4 py-3 max-sm:block max-sm:py-1.5">
                     <strong className="text-ink">asesor</strong>
@@ -371,8 +397,9 @@ export default function PrivacyPage() {
           </div>
           <p>
             Actualmente {legalName} no utiliza cookies de analítica, publicidad o seguimiento, como Google Analytics,
-            Meta Pixel o Google Ads. Si en el futuro se incorporan tecnologías de analítica o publicidad que requieran
-            tu consentimiento, implementaremos el mecanismo de consentimiento correspondiente antes de activarlas.
+            Meta Pixel o Google Ads: aunque el aviso de cookies muestra esas categorías opcionales, hoy no hay ninguna
+            herramienta activa en ellas. Si en el futuro se incorporan tecnologías de analítica o publicidad, solo se
+            activarán después de que des tu consentimiento en el aviso de cookies.
           </p>
           <p>Puedes borrar las cookies y el almacenamiento local desde la configuración de tu navegador.</p>
 
