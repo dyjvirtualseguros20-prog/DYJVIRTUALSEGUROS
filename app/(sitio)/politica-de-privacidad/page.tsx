@@ -299,6 +299,10 @@ export default function PrivacyPage() {
               Guarda un registro técnico de tu decisión sobre las cookies (punto 10).
             </li>
             <li>
+              <strong>Google LLC (Google Analytics):</strong> medición estadística del uso del sitio público. Solo se
+              activa si aceptas la categoría «Analítica» del aviso de cookies (punto 10). Estados Unidos.
+            </li>
+            <li>
               <strong>Meta (WhatsApp):</strong> cuando nos escribes o te escribimos por ese medio.
             </li>
           </ul>
@@ -393,14 +397,55 @@ export default function PrivacyPage() {
                     datos de navegación.
                   </td>
                 </tr>
+                <tr className="max-sm:block max-sm:py-2">
+                  <td className="px-4 py-3 max-sm:block max-sm:py-1.5">
+                    <strong className="text-ink">_ga</strong>
+                    <br />
+                    Cookie de analítica (opcional). Proveedor: Google Analytics
+                  </td>
+                  <td className="px-4 py-3 max-sm:block max-sm:py-1.5">
+                    <span className="block text-xs font-bold text-ink sm:hidden">Finalidad</span>
+                    Distingue a los visitantes para las estadísticas de uso del sitio. Solo se crea si aceptas la
+                    categoría «Analítica» del aviso de cookies.
+                  </td>
+                  <td className="px-4 py-3 max-sm:block max-sm:py-1.5">
+                    <span className="block text-xs font-bold text-ink sm:hidden">Duración</span>2 años (el navegador
+                    puede acortarla)
+                  </td>
+                </tr>
+                <tr className="max-sm:block max-sm:py-2">
+                  <td className="px-4 py-3 max-sm:block max-sm:py-1.5">
+                    <strong className="text-ink">_ga_TL8SJR9G32</strong>
+                    <br />
+                    Cookie de analítica (opcional). Proveedor: Google Analytics
+                  </td>
+                  <td className="px-4 py-3 max-sm:block max-sm:py-1.5">
+                    <span className="block text-xs font-bold text-ink sm:hidden">Finalidad</span>
+                    Mantiene el estado de la sesión de navegación para las estadísticas de uso del sitio. Solo se crea
+                    si aceptas la categoría «Analítica» del aviso de cookies.
+                  </td>
+                  <td className="px-4 py-3 max-sm:block max-sm:py-1.5">
+                    <span className="block text-xs font-bold text-ink sm:hidden">Duración</span>2 años (el navegador
+                    puede acortarla)
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
           <p>
-            Actualmente {legalName} no utiliza cookies de analítica, publicidad o seguimiento, como Google Analytics,
-            Meta Pixel o Google Ads: aunque el aviso de cookies muestra esas categorías opcionales, hoy no hay ninguna
-            herramienta activa en ellas. Si en el futuro se incorporan tecnologías de analítica o publicidad, solo se
-            activarán después de que des tu consentimiento en el aviso de cookies.
+            <strong>Google Analytics.</strong> {legalName} usa Google Analytics 4 (Google LLC) para medir de forma
+            estadística cómo se usa el sitio público: páginas visitadas, tipo de navegador y dispositivo, y origen de la
+            visita. Es una herramienta opcional de la categoría «Analítica»: mientras no la aceptes, Google Analytics
+            no se carga y no crea cookies en tu navegador. Si la rechazas, no se activa. Si la aceptas y después
+            retiras tu consentimiento, la medición se detiene y se eliminan las cookies de Google Analytics de este
+            sitio. Google Analytics no se usa en el panel interno (/admin) y lo tenemos configurado sin señales de
+            Google ni personalización de publicidad.
+          </p>
+          <p>
+            Actualmente {legalName} no utiliza cookies de publicidad ni de seguimiento publicitario, como Meta Pixel o
+            Google Ads: aunque el aviso de cookies muestra esas categorías opcionales, hoy no hay ninguna herramienta
+            activa en ellas. Si en el futuro se incorporan, solo se activarán después de que des tu consentimiento en
+            el aviso de cookies.
           </p>
           <p>Puedes borrar las cookies y el almacenamiento local desde la configuración de tu navegador.</p>
 

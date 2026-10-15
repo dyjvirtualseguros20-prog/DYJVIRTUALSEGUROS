@@ -108,7 +108,7 @@ export const siteConfig = {
     /** Fecha de la última actualización de la política (AAAA-MM-DD). */
     privacyPolicyUpdated: "2026-10-15",
     /** Versión de la política: se guarda con cada autorización. Súbela si cambias el texto. */
-    privacyPolicyVersion: "2.4",
+    privacyPolicyVersion: "2.5",
     /** Términos y condiciones: fecha y versión (se guardan con cada solicitud). */
     termsUpdated: "2026-10-07",
     termsVersion: "1.3",
