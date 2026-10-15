@@ -306,21 +306,75 @@ export default function PrivacyPage() {
           </p>
 
           <h2 id="cookies">10. Cookies y almacenamiento en tu navegador</h2>
-          <ul>
-            <li>
-              <strong>Cookie «asesor»:</strong> si entras por el enlace de un asesor, recuerda durante 30 días a qué
-              asesor se asigna tu solicitud. Es necesaria para esa función.
-            </li>
-            <li>
-              <strong>Aviso del asesor virtual:</strong> tu navegador recuerda que ya viste el mensaje de bienvenida,
-              para no repetirlo.
-            </li>
-            <li>
-              <strong>Sesión de asesores:</strong> el panel interno usa cookies de inicio de sesión, solo para los
-              asesores autorizados.
-            </li>
-          </ul>
-          <p>No usamos cookies de publicidad. Puedes borrar las cookies desde la configuración de tu navegador.</p>
+          <p>
+            Esta web usa solo las cookies y el almacenamiento propios que se indican a continuación. Ninguno se crea por
+            el simple hecho de visitar la página:
+          </p>
+          <div className="rounded-xl ring-1 ring-slate-200 sm:overflow-x-auto">
+            <table className="w-full text-left text-sm max-sm:block sm:min-w-[520px]">
+              <thead className="bg-slate-50 text-ink max-sm:hidden">
+                <tr>
+                  <th className="px-4 py-3 font-bold">Nombre y tipo</th>
+                  <th className="px-4 py-3 font-bold">Finalidad</th>
+                  <th className="px-4 py-3 font-bold">Duración</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 align-top max-sm:block">
+                <tr className="max-sm:block max-sm:py-2">
+                  <td className="px-4 py-3 max-sm:block max-sm:py-1.5">
+                    <strong className="text-ink">asesor</strong>
+                    <br />
+                    Cookie propia, funcional
+                  </td>
+                  <td className="px-4 py-3 max-sm:block max-sm:py-1.5">
+                    <span className="block text-xs font-bold text-ink sm:hidden">Finalidad</span>
+                    Solo se crea si entras por el enlace de un asesor. Recuerda a qué asesor se asigna tu solicitud.
+                  </td>
+                  <td className="px-4 py-3 max-sm:block max-sm:py-1.5">
+                    <span className="block text-xs font-bold text-ink sm:hidden">Duración</span>30 días
+                  </td>
+                </tr>
+                <tr className="max-sm:block max-sm:py-2">
+                  <td className="px-4 py-3 max-sm:block max-sm:py-1.5">
+                    <strong className="text-ink">sb-…-auth-token</strong>
+                    <br />
+                    Cookie propia de autenticación (Supabase), estrictamente necesaria
+                  </td>
+                  <td className="px-4 py-3 max-sm:block max-sm:py-1.5">
+                    <span className="block text-xs font-bold text-ink sm:hidden">Finalidad</span>
+                    Mantiene la sesión de los asesores autorizados en el panel interno (/admin). No se crea para los
+                    visitantes de la web.
+                  </td>
+                  <td className="px-4 py-3 max-sm:block max-sm:py-1.5">
+                    <span className="block text-xs font-bold text-ink sm:hidden">Duración</span>
+                    Se elimina al cerrar sesión. Si no se cierra, el navegador la conserva como máximo 400 días.
+                  </td>
+                </tr>
+                <tr className="max-sm:block max-sm:py-2">
+                  <td className="px-4 py-3 max-sm:block max-sm:py-1.5">
+                    <strong className="text-ink">dyj-chat-tip-visto</strong>
+                    <br />
+                    Almacenamiento local del navegador (localStorage), funcional
+                  </td>
+                  <td className="px-4 py-3 max-sm:block max-sm:py-1.5">
+                    <span className="block text-xs font-bold text-ink sm:hidden">Finalidad</span>
+                    Recuerda que ya viste el mensaje de bienvenida del asesor virtual, para no repetirlo. No guarda
+                    datos personales.
+                  </td>
+                  <td className="px-4 py-3 max-sm:block max-sm:py-1.5">
+                    <span className="block text-xs font-bold text-ink sm:hidden">Duración</span>Hasta que borres los
+                    datos de navegación.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            Actualmente {legalName} no utiliza cookies de analítica, publicidad o seguimiento, como Google Analytics,
+            Meta Pixel o Google Ads. Si en el futuro se incorporan tecnologías de analítica o publicidad que requieran
+            tu consentimiento, implementaremos el mecanismo de consentimiento correspondiente antes de activarlas.
+          </p>
+          <p>Puedes borrar las cookies y el almacenamiento local desde la configuración de tu navegador.</p>
 
           <h2 id="conservacion">11. Cuánto tiempo conservamos tus datos</h2>
           <ul>
