@@ -1,10 +1,11 @@
 import type { ReactNode } from "react";
 import { AssistantLauncher } from "@/components/chat/AssistantLauncher";
+import { CookieYes } from "@/components/legal/CookieYes";
 import { Footer } from "./Footer";
 import { Header } from "./Header";
 import { WhatsAppFloat } from "./WhatsAppFloat";
 
-/** Estructura del sitio público: encabezado, contenido, pie de página, WhatsApp flotante y asesor virtual. */
+/** Estructura del sitio público: encabezado, contenido, pie de página, WhatsApp flotante, asesor virtual y banner de cookies. */
 export function SiteShell({ children }: { children: ReactNode }) {
   return (
     <>
@@ -19,6 +20,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
       <Footer />
       <WhatsAppFloat />
       <AssistantLauncher />
+      <CookieYes />
     </>
   );
 }
